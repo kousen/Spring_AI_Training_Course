@@ -550,12 +550,17 @@ public class FilmographyController {
 
 In this lab, you'll learn how to enhance prompts with real-world, up-to-date information by fetching content from the web.
 
-First, add Tavily API dependency to your build.gradle.kts:
+First, make sure you have the appropriate dependencies in your build.gradle.kts:
 
 ```kotlin
 dependencies {
     // Existing dependencies
-    implementation("com.fasterxml.jackson.core:jackson-databind") // May already be included via Spring
+
+    // For RestClient (already included in spring-boot-starter-web)
+    // Add the Tavily API client - no official client, we'll use RestClient directly
+
+    // Ensure you have a TAVILY_API_KEY environment variable set
+    // You can sign up for a free API key at https://tavily.com/
 }
 ```
 
@@ -644,7 +649,22 @@ void promptStuffingWithExternalContent() {
 
 In this lab, you'll implement a basic RAG system using Spring AI's vector store capabilities.
 
-First, create a class to handle the RAG process:
+First, add the necessary vector store dependencies to your build.gradle.kts:
+
+```kotlin
+dependencies {
+    // Existing dependencies
+
+    // For vector store operations
+    implementation("org.springframework.ai:spring-ai-pgvector-store")
+    // For in-memory vector operations (SimpleVectorStore)
+    implementation("org.springframework.ai:spring-ai-core")
+    // OpenAI embedding model
+    implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter") // Already included
+}
+```
+
+Now create a class to handle the RAG process:
 
 ```java
 @Component
