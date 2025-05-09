@@ -265,7 +265,9 @@ void defaultRequestsAreStateless() {
             .content();
     System.out.println(answer2);
 
-    // The model should not remember that you are Inigo Montoya since we're not using memory
+    // Verify the model doesn't identify the user as Inigo Montoya
+    assertFalse(answer2.toLowerCase().contains("inigo montoya"),
+            "The model should not remember previous conversations without memory")
 }
 ```
 
@@ -297,7 +299,9 @@ void requestsWithMemory() {
             .content();
     System.out.println(answer2);
 
-    // The model should now remember that you are Inigo Montoya
+    // Verify the model correctly identifies the user as Inigo Montoya
+    assertTrue(answer2.toLowerCase().contains("inigo montoya"),
+            "The model should remember the user's identity when using memory")
 }
 ```
 
