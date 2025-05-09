@@ -544,6 +544,245 @@ public class FilmographyController {
 }
 ```
 
+## Lab 11: Document-Enhanced Prompting
+
+### 11.1 Prompt Stuffing with External Content
+
+In this lab, you'll learn how to enhance prompts with real-world, up-to-date information by fetching content from the web.
+
+First, add Tavily API dependency to your build.gradle.kts:
+
+```kotlin
+dependencies {
+    // Existing dependencies
+    implementation("com.fasterxml.jackson.core:jackson-databind") // May already be included via Spring
+}
+```
+
+Create a utility class to fetch content from a URL using Tavily's content extraction API:
+
+```java
+@Component
+public class ContentFetcher {
+    private final RestClient restClient;
+    private final ObjectMapper objectMapper;
+    private final String apiKey;
+
+    public ContentFetcher(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+        this.restClient = RestClient.create();
+        this.apiKey = System.getenv("TAVILY_API_KEY");
+    }
+
+    public String fetchContent(String url) {
+        try {
+            // Create request body
+            Map<String, Object> requestBody = Map.of(
+                "url", url,
+                "include_images", false
+            );
+
+            // Make API call to Tavily
+            String response = restClient.post()
+                .uri("https://api.tavily.com/content-extraction")
+                .header("Content-Type", "application/json")
+                .header("x-api-key", apiKey)
+                .body(requestBody)
+                .retrieve()
+                .body(String.class);
+
+            // Parse the JSON response
+            JsonNode root = objectMapper.readTree(response);
+            return root.path("content").asText();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch content from " + url, e);
+        }
+    }
+}
+```
+
+Now create a test that uses this fetched content with prompt stuffing:
+
+```java
+@Test
+void promptStuffingWithExternalContent() {
+    ChatClient chatClient = ChatClient.create(model);
+    ContentFetcher contentFetcher = new ContentFetcher(new ObjectMapper());
+
+    // Fetch content from a recent article (choose a URL with relevant content)
+    String url = "https://spring.io/blog/2024/01/25/spring-ai-in-action";
+    String articleContent = contentFetcher.fetchContent(url);
+
+    // Create a prompt that includes the article content
+    String prompt = """
+            I'll provide you with an article about Spring AI. Please summarize the key features
+            and use cases mentioned in the article in 5 bullet points.
+
+            Here's the article:
+            %s
+
+            Provide only the summary bullets in your response.
+            """.formatted(articleContent);
+
+    // Send the prompt to the model
+    String response = chatClient.prompt()
+            .user(prompt)
+            .call()
+            .content();
+
+    System.out.println("Summary from prompt stuffing:");
+    System.out.println(response);
+
+    // Ensure we got a response
+    assertFalse(response.isEmpty());
+    assertTrue(response.contains("•") || response.contains("-"),
+            "Response should contain bullet points");
+}
+```
+
+### 11.2 Retrieval-Augmented Generation (RAG)
+
+In this lab, you'll implement a basic RAG system using Spring AI's vector store capabilities.
+
+First, create a class to handle the RAG process:
+
+```java
+@Component
+public class RAGService {
+    private final ChatClient chatClient;
+    private final ContentFetcher contentFetcher;
+    private final OpenAiEmbeddingModel embeddingModel;
+    private final SimpleVectorStore vectorStore;
+
+    public RAGService(
+            OpenAiChatModel chatModel,
+            OpenAiEmbeddingModel embeddingModel,
+            ContentFetcher contentFetcher) {
+        this.chatClient = ChatClient.create(chatModel);
+        this.embeddingModel = embeddingModel;
+        this.contentFetcher = contentFetcher;
+        this.vectorStore = new SimpleVectorStore(embeddingModel);
+    }
+
+    public void addContentToKnowledgeBase(String url, String source) {
+        // Fetch content
+        String content = contentFetcher.fetchContent(url);
+
+        // Split content into chunks
+        List<String> chunks = splitTextIntoChunks(content, 500, 100);
+
+        // Create documents with metadata
+        List<Document> documents = chunks.stream()
+                .map(chunk -> new Document(chunk, Map.of("source", source, "url", url)))
+                .toList();
+
+        // Add documents to vector store
+        vectorStore.add(documents);
+    }
+
+    public String query(String question, int topK) {
+        // Search for relevant documents
+        List<Document> relevantDocs = vectorStore.similaritySearch(question, topK);
+
+        // Construct a prompt with the retrieved documents
+        StringBuilder contextBuilder = new StringBuilder();
+        for (Document doc : relevantDocs) {
+            contextBuilder.append("Source: ").append(doc.getMetadata().get("source")).append("\n");
+            contextBuilder.append(doc.getContent()).append("\n\n");
+        }
+
+        // Create the final prompt
+        String prompt = """
+                Answer the following question based ONLY on the provided context:
+
+                Context:
+                %s
+
+                Question: %s
+
+                If the context doesn't contain relevant information, say "I don't have enough information to answer this question."
+                """.formatted(contextBuilder, question);
+
+        // Get the response from the LLM
+        return chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+    }
+
+    private List<String> splitTextIntoChunks(String text, int chunkSize, int overlap) {
+        List<String> chunks = new ArrayList<>();
+        String[] sentences = text.split("\\. ");
+
+        StringBuilder currentChunk = new StringBuilder();
+        for (String sentence : sentences) {
+            // If adding this sentence would exceed chunk size, store current chunk and start a new one
+            if (currentChunk.length() + sentence.length() > chunkSize && currentChunk.length() > 0) {
+                chunks.add(currentChunk.toString());
+
+                // Keep some overlap for context continuity
+                String[] words = currentChunk.toString().split("\\s+");
+                currentChunk = new StringBuilder();
+                if (words.length > overlap) {
+                    for (int i = words.length - overlap; i < words.length; i++) {
+                        currentChunk.append(words[i]).append(" ");
+                    }
+                }
+            }
+
+            currentChunk.append(sentence).append(". ");
+        }
+
+        // Add the final chunk if it's not empty
+        if (currentChunk.length() > 0) {
+            chunks.add(currentChunk.toString());
+        }
+
+        return chunks;
+    }
+}
+```
+
+Now create a test that uses the RAG service:
+
+```java
+@Test
+void retrievalAugmentedGeneration() {
+    // Create the RAG service
+    RAGService ragService = new RAGService(model, embeddingModel, new ContentFetcher(new ObjectMapper()));
+
+    // Add content to the knowledge base
+    ragService.addContentToKnowledgeBase(
+            "https://spring.io/blog/2024/01/25/spring-ai-in-action",
+            "Spring AI Blog");
+
+    // Add more content if needed
+    ragService.addContentToKnowledgeBase(
+            "https://spring.io/blog/2024/03/11/spring-ai-at-spring-one-essentials",
+            "Spring One Blog");
+
+    // Query the RAG system
+    String question = "What are the key features of Spring AI?";
+    String response = ragService.query(question, 3);
+
+    System.out.println("RAG Response:");
+    System.out.println(response);
+
+    // Test with a question that is out of scope
+    String outOfScopeQuestion = "How do I implement OAuth2 in Spring Security?";
+    String outOfScopeResponse = ragService.query(outOfScopeQuestion, 3);
+
+    System.out.println("\nOut of scope RAG Response:");
+    System.out.println(outOfScopeResponse);
+
+    // Assertions
+    assertFalse(response.isEmpty());
+    assertTrue(outOfScopeResponse.contains("don't have enough information") ||
+               outOfScopeResponse.contains("not enough information"),
+               "Should indicate lack of information for out-of-scope questions");
+}
+```
+
 ## Conclusion
 
 Congratulations! You've completed a comprehensive tour of Spring AI's capabilities. You've learned how to:
@@ -557,5 +796,7 @@ Congratulations! You've completed a comprehensive tour of Spring AI's capabiliti
 - Generate images using AI models
 - Extend AI capabilities with custom tools
 - Process audio with text-to-speech and speech-to-text
+- Enhance AI responses with external content using prompt stuffing
+- Build a Retrieval-Augmented Generation (RAG) system for accurate, grounded responses
 
 These skills provide a solid foundation for building AI-powered applications using the Spring ecosystem.
