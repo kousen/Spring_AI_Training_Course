@@ -241,16 +241,17 @@ void promptTemplateFromResource() {
 
 ## Lab 5: Chat Memory
 
-Create a test that demonstrates stateful conversations:
+### 5.1 Demonstrating Stateless Behavior
+
+Create a test that demonstrates how requests are stateless by default:
 
 ```java
 @Test
-void requestsAreStateless() {
+void defaultRequestsAreStateless() {
     ChatClient chatClient = ChatClient.create(model);
-    
+
     System.out.println("Initial query:");
     String answer1 = chatClient.prompt()
-            .advisors(new MessageChatMemoryAdvisor(memory))
             .user(u -> u
                     .text("My name is Inigo Montoya. You killed my father. Prepare to die."))
             .call()
@@ -259,11 +260,44 @@ void requestsAreStateless() {
 
     System.out.println("Second query:");
     String answer2 = chatClient.prompt()
+            .user(u -> u.text("Who am I?"))
+            .call()
+            .content();
+    System.out.println(answer2);
+
+    // The model should not remember that you are Inigo Montoya since we're not using memory
+}
+```
+
+### 5.2 Adding Memory to Retain Conversation State
+
+Create a test that demonstrates how to make conversations stateful using ChatMemory:
+
+```java
+@Test
+void requestsWithMemory() {
+    // Get the memory bean from Spring context
+    ChatMemory memory = /* get the memory bean */;
+    ChatClient chatClient = ChatClient.create(model);
+
+    System.out.println("Initial query with memory:");
+    String answer1 = chatClient.prompt()
+            .advisors(new MessageChatMemoryAdvisor(memory))
+            .user(u -> u
+                    .text("My name is Inigo Montoya. You killed my father. Prepare to die."))
+            .call()
+            .content();
+    System.out.println(answer1);
+
+    System.out.println("Second query with memory:");
+    String answer2 = chatClient.prompt()
             .advisors(new MessageChatMemoryAdvisor(memory))
             .user(u -> u.text("Who am I?"))
             .call()
             .content();
     System.out.println(answer2);
+
+    // The model should now remember that you are Inigo Montoya
 }
 ```
 
