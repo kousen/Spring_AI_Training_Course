@@ -3,14 +3,17 @@ package com.oreilly.springaicourse;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.reader.jsoup.JsoupDocumentReader;
+import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.Resource;
 
 import java.util.List;
 
@@ -21,20 +24,32 @@ public class AppConfig {
 
     private final TextSplitter splitter = new TokenTextSplitter();
 
+    @Value("classpath:/pdfs/WEF_Future_of_Jobs_Report_2025.pdf")
+    private Resource jobsReport2025;
+
     @Bean
     @Profile("rag")
     ApplicationRunner loadVectorStore(VectorStore vectorStore) {
-        return args -> List.of(FEUD_URL, SPRING_URL).forEach(url -> {
-            // Fetch HTML content using Jsoup
-            List<Document> documents = new JsoupDocumentReader(url).get();
-            System.out.println("Fetched " + documents.size() + " documents from " + url);
+        return args -> {
+            // Process URLs
+            List.of(FEUD_URL, SPRING_URL).forEach(url -> {
+                // Fetch HTML content using Jsoup
+                List<Document> documents = new JsoupDocumentReader(url).get();
+                System.out.println("Fetched " + documents.size() + " documents from " + url);
 
-            // Split the document into chunks
-            List<Document> chunks = splitter.apply(documents);
+                // Split the document into chunks
+                List<Document> chunks = splitter.apply(documents);
 
-            // Add the chunks to the vector store
-            vectorStore.add(chunks);
-        });
+                // Add the chunks to the vector store
+                vectorStore.add(chunks);
+            });
+
+            // Add PDF to the vector store (only once)
+            List<Document> pdfDocuments = new PagePdfDocumentReader(jobsReport2025).get();
+            System.out.println("Fetched " + pdfDocuments.size() + " documents from " + jobsReport2025.getFilename());
+            List<Document> pdfChunks = splitter.apply(pdfDocuments);
+            vectorStore.add(pdfChunks);
+        };
     }
 
     @Bean

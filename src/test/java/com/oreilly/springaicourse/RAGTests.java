@@ -15,7 +15,7 @@ public class RAGTests {
     private RAGService ragService;
 
     @Test
-    void retrievalAugmentedGeneration() {
+    void ragFromWikipediaInfo() {
         // Query about Spring (should return relevant info)
         String question = "What is the latest version of the Spring Framework?";
         String response = ragService.query(question);
@@ -24,6 +24,22 @@ public class RAGTests {
         System.out.println(response);
 
         // Assertions for Chat Client API query
+        assertNotNull(response);
+        assertFalse(response.isEmpty());
+    }
+
+    @Test
+    void ragFromPdfInfo() {
+        // Query about the World Economic Forum report
+        String question = """
+                What are the most transformative technology trends expected to
+                reshape global labor markets by 2030, and how does AI rank among them?
+                """;
+        String response = ragService.query(question);
+
+        System.out.println("\nRAG Response about WEF Report:");
+        System.out.println(response);
+
         assertNotNull(response);
         assertFalse(response.isEmpty());
     }
