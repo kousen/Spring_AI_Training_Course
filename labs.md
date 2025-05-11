@@ -855,7 +855,7 @@ The RAG system you've built can be extended with additional knowledge sources by
 
 While web content is easily accessible using the JsoupDocumentReader, many valuable information sources exist as PDF documents. Let's extend our RAG system to incorporate PDF documents:
 
-```java
+```kotlin
 // Add the required PDF document reader dependency in build.gradle.kts
 dependencies {
     // Existing dependencies...
@@ -905,7 +905,6 @@ public class AppConfig {
                 System.out.println("PDF processing complete!");
             } catch (Exception e) {
                 System.err.println("Error processing PDF: " + e.getMessage());
-                e.printStackTrace();
             }
         };
     }
