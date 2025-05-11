@@ -8,10 +8,13 @@ import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.image.Image;
+import org.springframework.ai.image.ImageOptions;
 import org.springframework.ai.image.ImagePrompt;
 import org.springframework.ai.image.ImageResponse;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiImageModel;
+import org.springframework.ai.openai.OpenAiImageOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,8 +23,14 @@ import org.springframework.core.io.Resource;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -234,6 +243,28 @@ class OpenAiTests {
         var imagePrompt = new ImagePrompt(prompt);
         ImageResponse imageResponse = imageModel.call(imagePrompt);
         System.out.println(imageResponse);
+    }
+
+    @Test
+    void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOException {
+        String prompt = """
+            A warrior cat rides a dragon into battle""";
+
+        var imageOptions = OpenAiImageOptions.builder()
+                .responseFormat("b64_json")
+                .build();
+        var imagePrompt = new ImagePrompt(prompt, imageOptions);
+        ImageResponse imageResponse = imageModel.call(imagePrompt);
+        Image image = imageResponse.getResult().getOutput();
+        assertNotNull(image);
+
+        // Decode the base64 to bytes
+        byte[] imageBytes = Base64.getDecoder().decode(image.getB64Json());
+
+        // Write to file (e.g., PNG)
+        Files.write(Path.of("src/main/resources","output_image.png"), imageBytes);
+
+        System.out.println("Image saved as output_image.png");
     }
 
     @Test

@@ -24,15 +24,19 @@ This series of labs will guide you through building a Spring AI application that
 
 ### 1.1 A Simple Query
 
+In the test class (`OpenAiTests.java`), autowire in an instance of OpenAI's chat model:
+
+```java
+@Autowired
+private OpenAiChatModel model;
+```
+
 Create a test method that sends a simple query to the OpenAI model using Spring AI's ChatClient:
 
 ```java
 @Test
 void simpleQuery() {
-    // Get the model from Spring context
-    OpenAiChatModel model = /* get the model bean */;
-    
-    // Create a chat client
+    // Create a chat client from the model
     ChatClient chatClient = ChatClient.create(model);
     
     // Send a prompt and get the response
@@ -66,7 +70,7 @@ void simpleQueryRespondLikeAPirate() {
 
 ### 1.3 Accessing Response Metadata
 
-Create a test that retrieves and displays the full response object including metadata:
+Create a test that retrieves and displays the full `ChatResponse` object:
 
 ```java
 @Test
@@ -85,11 +89,16 @@ void simpleQueryWithChatResponse() {
 }
 ```
 
+Note how the metadata provides useful information about the model and the token usage.
+
 ## Lab 2: Streaming Responses
 
 ### 2.1 Streaming with CountDownLatch
 
-Create a test that streams the response using a CountDownLatch:
+Create a test that streams the response. While the code will work,
+the challenge in a JUnit test is to keep the test from exiting
+before the asynchronous response returns. One way to do that is 
+using a CountDownLatch:
 
 ```java
 @Test
@@ -117,9 +126,20 @@ void streamingChatCountDownLatch() throws InterruptedException {
 }
 ```
 
+Note how the three-argument version of the `subscribe` method takes
+lambda expressions for the individual callbacks. The first one is for the
+normal response, the second one is for errors, and the third one
+is for completion. The `subscribe` method returns a `Disposable` object
+that can be used to cancel the subscription if needed. The `CountDownLatch`
+is used to handle the asynchronous response.
+
 ### 2.2 Streaming with Reactor Operators
 
-Create a test that uses Reactor's operators to process the stream:
+A simpler way to handle the same issue is to use Reactor's operators
+to process the stream. This way, you can avoid using a `CountDownLatch`
+and instead use the `doOnNext`, `doOnError`, and `doOnComplete` methods
+to handle the response. This is a more idiomatic way to work with
+Reactor streams and allows you to chain multiple operations together.
 
 ```java
 @Test
@@ -171,7 +191,9 @@ void actorFilmsTest() {
 
 ### 3.3 Collection of Entities
 
-Create a test that extracts a collection of entities:
+The above approach works for a single instance of a class, even if that
+class contains a collection. However, if you want to extract a collection,
+you need to use a `ParameterizedTypeReference` to specify the type of the collection.
 
 ```java
 @Test
@@ -213,7 +235,21 @@ void promptTemplate() {
 }
 ```
 
+The prompt template is simply a string that by default uses
+`{name}` placeholders for parameters. You can use the `param` method
+to set the values for these parameters. The `param` method can be called
+multiple times to set multiple parameters. The `text` method is used
+to set the text of the prompt.
+
 ### 4.2 Template from Resource
+
+Spring AI includes its template engine called Spring Templates,
+which allows you to create templates in a more structured way. You can
+use this engine to create templates that are stored in files, making it
+easier to manage and reuse them. The templates can be stored in the
+`src/main/resources` directory, and you can use the `@Value` annotation
+to inject the template into your code. The default file extension
+for templates is `.st`, but you can use any extension you like.
 
 First, create a template file at `src/main/resources/movie_prompt.st`:
 ```
@@ -239,9 +275,18 @@ void promptTemplateFromResource() {
 }
 ```
 
+If you need to use an alternative delimiter for the template variables,
+other than `{}`, you can specify one. See the Spring AI documentation
+for more details.
+
 ## Lab 5: Chat Memory
 
 ### 5.1 Demonstrating Stateless Behavior
+
+All requests to AI tools are stateless by default, meaning no
+conversation history is retained between requests. This is useful
+for one-off queries but can be limiting for conversational
+interactions.
 
 Create a test that demonstrates how requests are stateless by default:
 
@@ -267,19 +312,25 @@ void defaultRequestsAreStateless() {
 
     // Verify the model doesn't identify the user as Inigo Montoya
     assertFalse(answer2.toLowerCase().contains("inigo montoya"),
-            "The model should not remember previous conversations without memory")
+            "The model should not remember previous conversations without memory");
 }
 ```
 
 ### 5.2 Adding Memory to Retain Conversation State
+
+Use the `ChatMemory` abstraction to maintain the previous user and
+assistant messages. Fortunately, you can autowire in a `ChatMemory` bean.
+
+```java
+@Autowired
+private ChatMemory memory;
+```
 
 Create a test that demonstrates how to make conversations stateful using ChatMemory:
 
 ```java
 @Test
 void requestsWithMemory() {
-    // Get the memory bean from Spring context
-    ChatMemory memory = /* get the memory bean */;
     ChatClient chatClient = ChatClient.create(model);
 
     System.out.println("Initial query with memory:");
@@ -301,8 +352,40 @@ void requestsWithMemory() {
 
     // Verify the model correctly identifies the user as Inigo Montoya
     assertTrue(answer2.toLowerCase().contains("inigo montoya"),
-            "The model should remember the user's identity when using memory")
+            "The model should remember the user's identity when using memory");
 }
+```
+
+This example showed how to add chat memory to each individual
+request. However, you can also use the `ChatClient` builder
+to set the memory advisor for all requests. This is useful
+if you want to maintain the conversation state across multiple
+requests without having to specify the memory advisor each time.
+
+```java
+ChatClient chatClient = ChatClient.builder(model)
+        .defaultAdvisors(new MessageChatMemoryAdvisor(memory))
+        .build();
+```
+
+If you add that to the `setUp` method, you can remove the
+`advisors` method from the individual requests.
+
+```java
+@BeforeEach
+void setUp() {
+    // Use builder to add default advisors
+    chatClient = ChatClient.builder(model)
+            .defaultAdvisors(new MessageChatMemoryAdvisor(memory))
+            .build();
+}
+```
+
+To use that approach, be sure to add a `ChatClient` field
+to the test class:
+
+```java
+private ChatClient chatClient;
 ```
 
 ## Lab 6: Vision Capabilities
@@ -354,15 +437,17 @@ void remoteVisionTest() {
 }
 ```
 
+This is a simple example. More commonly, you would ask an AI
+to read text from an image, like a screenshot of an error message.
+
 ## Lab 7: Image Generation
 
-Create a test that generates an image:
+Create a test that generates an image. Note that you can
+autowire in the `OpenAiImageModel` bean:
 
 ```java
 @Test
-void imageGenerator() {
-    OpenAiImageModel imageModel = /* get the image model bean */;
-    
+void imageGenerator(@Autowired OpenAiImageModel imageModel) {
     String prompt = """
             A warrior cat rides a dragon into battle""";
     var imagePrompt = new ImagePrompt(prompt);
@@ -371,6 +456,45 @@ void imageGenerator() {
     System.out.println(imageResponse);
 }
 ```
+
+The response object will contain an `Image` that includes a URL
+to the generated image. You can use this URL to display the image
+in a web application or save it to a file. The image is only 
+available for a limited time, so be sure to download it
+if you want to keep it.
+
+Alternatively, you can configure the request to ask for a 
+Base 64 encoded image instead of a URL. The `ImageResponse` 
+object will then contain a Base 64 encoded string
+that represents the image. You can use this string to display
+the image in a web application or save it to a file. To save
+the image to a file, you can decode the Base 64 string and write
+it to a file. 
+
+```java
+    @Test
+void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOException {
+   String prompt = """
+           A warrior cat rides a dragon into battle""";
+
+   var imageOptions = OpenAiImageOptions.builder()
+           .responseFormat("b64_json")
+           .build();
+   var imagePrompt = new ImagePrompt(prompt, imageOptions);
+   ImageResponse imageResponse = imageModel.call(imagePrompt);
+   Image image = imageResponse.getResult().getOutput();
+   assertNotNull(image);
+
+   // Decode the base64 to bytes
+   byte[] imageBytes = Base64.getDecoder().decode(image.getB64Json());
+
+   // Write to file (e.g., PNG)
+   Files.write(Path.of("src/main/resources","output_image.png"), imageBytes);
+   System.out.println("Image saved as output_image.png in src/main/resources");
+}
+```
+
+You can change the file name and format as needed.
 
 ## Lab 8: AI Tools
 
@@ -396,9 +520,9 @@ class DateTimeTools {
 }
 ```
 
-### 8.2 Use the Tool
+### 8.2 Use the Tools
 
-Create a test that uses the tool:
+Create a test that uses the annotated methods:
 
 ```java
 @Test
@@ -421,7 +545,7 @@ void useDateTimeTools() {
 }
 ```
 
-## Lab 9: Audio Capabilities (Optional)
+## Lab 9: Audio Capabilities
 
 ### 9.1 Text-to-Speech
 
@@ -429,9 +553,7 @@ Create a test that generates speech from text:
 
 ```java
 @Test
-void textToSpeech() {
-    OpenAiAudioSpeechModel speechModel = /* get the speech model bean */;
-    
+void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
     String text = "Welcome to Spring AI, a powerful framework for integrating AI into your Spring applications.";
     
     OpenAiAudioSpeechOptions options = OpenAiAudioSpeechOptions.builder()
@@ -456,14 +578,18 @@ void textToSpeech() {
 
 ### 9.2 Speech-to-Text
 
-First, add a sample audio file in `src/main/resources/audio/tftjs.mp3`.
+First, autowire in the `src/main/resources/audio/tftjs.mp3`:
+
+```java
+@Value("classpath:audio/tftjs.mp3")
+private Resource sampleAudioResource;
+```
 
 Then create a test that transcribes speech to text:
 
 ```java
 @Test
-void speechToText() {
-    OpenAiAudioTranscriptionModel transcriptionModel = /* get the transcription model bean */;
+void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
     
     // Optional configuration
     OpenAiAudioTranscriptionOptions options = OpenAiAudioTranscriptionOptions.builder()
@@ -480,7 +606,7 @@ void speechToText() {
 }
 ```
 
-## Lab 10: Refactoring for Production (Bonus)
+## Lab 10: Refactoring for Production
 
 ### 10.1 Create a Common Setup
 
@@ -489,8 +615,11 @@ Refactor your tests to use a common setup method:
 ```java
 @BeforeEach
 void setUp() {
-    // Use builder to add default advisors
+    // Use builder to add default advisors if desired
     chatClient = ChatClient.builder(model)
+            .defaultAdvisors(
+                    new MessageChatMemoryAdvisor(memory),
+                    new SimpleLoggerAdvisor())
             .build();
 
     // Use create for defaults
@@ -544,264 +673,183 @@ public class FilmographyController {
 }
 ```
 
-## Lab 11: Document-Enhanced Prompting
+## Lab 11: Retrieval-Augmented Generation (RAG)
 
-### 11.1 Prompt Stuffing with External Content
+In this lab, you'll build a Retrieval-Augmented Generation (RAG) system using Spring AI's document readers and vector store capabilities. RAG enhances AI responses by retrieving relevant information from a knowledge base before generating answers.
 
-In this lab, you'll learn how to enhance prompts with real-world, up-to-date information by fetching content from the web.
+### 11.1 Adding Required Dependencies
 
-First, make sure you have the appropriate dependencies in your build.gradle.kts:
+First, add the necessary dependencies to your build.gradle.kts:
 
 ```kotlin
 dependencies {
-    // Existing dependencies
+    // Existing dependencies...
 
-    // For RestClient (already included in spring-boot-starter-web)
-    // Add the Tavily API client - no official client, we'll use RestClient directly
+    // Vector store for RAG implementation
+    implementation("org.springframework.ai:spring-ai-advisors-vector-store")
 
-    // Ensure you have a TAVILY_API_KEY environment variable set
-    // You can sign up for a free API key at https://tavily.com/
+    // Document readers for different content types
+    implementation("org.springframework.ai:spring-ai-jsoup-document-reader") // For HTML/web content
+    implementation("org.springframework.ai:spring-ai-pdf-document-reader")   // Optional: For PDF documents
 }
 ```
 
-Create a utility class to fetch content from a URL using Tavily's content extraction API:
+### 11.2 Setting up the Configuration
+
+Create a configuration class that will manage the vector store and document loading:
 
 ```java
-@Component
-public class ContentFetcher {
-    private final RestClient restClient;
-    private final ObjectMapper objectMapper;
-    private final String apiKey;
+@Configuration
+public class AppConfig {
+    // URLs for our knowledge base
+    private static final String SPRING_URL = "https://en.wikipedia.org/wiki/Spring_Framework";
+    private static final String SPRING_BOOT_URL = "https://en.wikipedia.org/wiki/Spring_Boot";
 
-    public ContentFetcher(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-        this.restClient = RestClient.create();
-        this.apiKey = System.getenv("TAVILY_API_KEY");
+    // Use the default token-based text splitter
+    private final TextSplitter splitter = new TokenTextSplitter();
+
+    @Bean
+    @Profile("rag") // Only activate when the 'rag' profile is enabled
+    ApplicationRunner loadVectorStore(VectorStore vectorStore) {
+        return args -> List.of(SPRING_URL, SPRING_BOOT_URL).forEach(url -> {
+            // Fetch HTML content using Spring AI's JsoupDocumentReader
+            List<Document> documents = new JsoupDocumentReader(url).get();
+            System.out.println("Fetched " + documents.size() + " documents from " + url);
+
+            // Split the documents into chunks for better retrieval
+            List<Document> chunks = splitter.apply(documents);
+
+            // Add the chunks to the vector store
+            vectorStore.add(chunks);
+        });
     }
 
-    public String fetchContent(String url) {
-        try {
-            // Create request body
-            Map<String, Object> requestBody = Map.of(
-                "url", url,
-                "include_images", false
-            );
-
-            // Make API call to Tavily
-            String response = restClient.post()
-                .uri("https://api.tavily.com/content-extraction")
-                .header("Content-Type", "application/json")
-                .header("x-api-key", apiKey)
-                .body(requestBody)
-                .retrieve()
-                .body(String.class);
-
-            // Parse the JSON response
-            JsonNode root = objectMapper.readTree(response);
-            return root.path("content").asText();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch content from " + url, e);
-        }
+    @Bean
+    VectorStore vectorStore(EmbeddingModel embeddingModel) {
+        return SimpleVectorStore.builder(embeddingModel).build();
     }
 }
 ```
 
-Now create a test that uses this fetched content with prompt stuffing:
+Make sure your application.properties file is configured properly:
 
-```java
-@Test
-void promptStuffingWithExternalContent() {
-    ChatClient chatClient = ChatClient.create(model);
-    ContentFetcher contentFetcher = new ContentFetcher(new ObjectMapper());
+```properties
+# Use the smaller embedding model for better performance
+spring.ai.openai.embedding.options.model=text-embedding-3-small
 
-    // Fetch content from a recent article (choose a URL with relevant content)
-    String url = "https://spring.io/blog/2024/01/25/spring-ai-in-action";
-    String articleContent = contentFetcher.fetchContent(url);
-
-    // Create a prompt that includes the article content
-    String prompt = """
-            I'll provide you with an article about Spring AI. Please summarize the key features
-            and use cases mentioned in the article in 5 bullet points.
-
-            Here's the article:
-            %s
-
-            Provide only the summary bullets in your response.
-            """.formatted(articleContent);
-
-    // Send the prompt to the model
-    String response = chatClient.prompt()
-            .user(prompt)
-            .call()
-            .content();
-
-    System.out.println("Summary from prompt stuffing:");
-    System.out.println(response);
-
-    // Ensure we got a response
-    assertFalse(response.isEmpty());
-    assertTrue(response.contains("•") || response.contains("-"),
-            "Response should contain bullet points");
-}
+# Reduce logging levels for cleaner output
+logging.level.org.springframework.ai=info
+logging.level.org.springframework.ai.chat.client.advisor=info
 ```
 
-### 11.2 Retrieval-Augmented Generation (RAG)
+### 11.3 Creating the RAG Service
 
-In this lab, you'll implement a basic RAG system using Spring AI's vector store capabilities.
-
-First, add the necessary vector store dependencies to your build.gradle.kts:
-
-```kotlin
-dependencies {
-    // Existing dependencies
-
-    // For vector store operations
-    implementation("org.springframework.ai:spring-ai-pgvector-store")
-    // For in-memory vector operations (SimpleVectorStore)
-    implementation("org.springframework.ai:spring-ai-core")
-    // OpenAI embedding model
-    implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter") // Already included
-}
-```
-
-Now create a class to handle the RAG process:
+Create a service class that handles queries against your knowledge base:
 
 ```java
-@Component
+@Service
 public class RAGService {
     private final ChatClient chatClient;
-    private final ContentFetcher contentFetcher;
-    private final OpenAiEmbeddingModel embeddingModel;
-    private final SimpleVectorStore vectorStore;
+    private final VectorStore vectorStore;
 
+    @Autowired
     public RAGService(
             OpenAiChatModel chatModel,
-            OpenAiEmbeddingModel embeddingModel,
-            ContentFetcher contentFetcher) {
+            VectorStore vectorStore) {
         this.chatClient = ChatClient.create(chatModel);
-        this.embeddingModel = embeddingModel;
-        this.contentFetcher = contentFetcher;
-        this.vectorStore = new SimpleVectorStore(embeddingModel);
+        this.vectorStore = vectorStore;
     }
 
-    public void addContentToKnowledgeBase(String url, String source) {
-        // Fetch content
-        String content = contentFetcher.fetchContent(url);
+    public String query(String question) {
+        // Define the instruction prompt
+        String instructionPrompt = """
+                Answer the question based ONLY on the provided context.
+                If the context doesn't contain relevant information, say
+                "I don't have enough information to answer this question."
+                """;
 
-        // Split content into chunks
-        List<String> chunks = splitTextIntoChunks(content, 500, 100);
+        // Create a QuestionAnswerAdvisor with the vectorStore
+        QuestionAnswerAdvisor advisor = new QuestionAnswerAdvisor(vectorStore);
 
-        // Create documents with metadata
-        List<Document> documents = chunks.stream()
-                .map(chunk -> new Document(chunk, Map.of("source", source, "url", url)))
-                .toList();
-
-        // Add documents to vector store
-        vectorStore.add(documents);
-    }
-
-    public String query(String question, int topK) {
-        // Search for relevant documents
-        List<Document> relevantDocs = vectorStore.similaritySearch(question, topK);
-
-        // Construct a prompt with the retrieved documents
-        StringBuilder contextBuilder = new StringBuilder();
-        for (Document doc : relevantDocs) {
-            contextBuilder.append("Source: ").append(doc.getMetadata().get("source")).append("\n");
-            contextBuilder.append(doc.getContent()).append("\n\n");
-        }
-
-        // Create the final prompt
-        String prompt = """
-                Answer the following question based ONLY on the provided context:
-
-                Context:
-                %s
-
-                Question: %s
-
-                If the context doesn't contain relevant information, say "I don't have enough information to answer this question."
-                """.formatted(contextBuilder, question);
-
-        // Get the response from the LLM
+        // Use the advisor to handle the RAG workflow
         return chatClient.prompt()
-                .user(prompt)
+                .advisors(advisor)
+                .system(instructionPrompt)
+                .user(question)
                 .call()
                 .content();
     }
+}
+```
 
-    private List<String> splitTextIntoChunks(String text, int chunkSize, int overlap) {
-        List<String> chunks = new ArrayList<>();
-        String[] sentences = text.split("\\. ");
+### 11.4 Testing the RAG System
 
-        StringBuilder currentChunk = new StringBuilder();
-        for (String sentence : sentences) {
-            // If adding this sentence would exceed chunk size, store current chunk and start a new one
-            if (currentChunk.length() + sentence.length() > chunkSize && currentChunk.length() > 0) {
-                chunks.add(currentChunk.toString());
+Create an integration test to verify your RAG system works correctly:
 
-                // Keep some overlap for context continuity
-                String[] words = currentChunk.toString().split("\\s+");
-                currentChunk = new StringBuilder();
-                if (words.length > overlap) {
-                    for (int i = words.length - overlap; i < words.length; i++) {
-                        currentChunk.append(words[i]).append(" ");
-                    }
-                }
-            }
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("rag") // Enable the RAG profile for this test
+public class RAGTests {
 
-            currentChunk.append(sentence).append(". ");
-        }
+    @Autowired
+    private RAGService ragService;
 
-        // Add the final chunk if it's not empty
-        if (currentChunk.length() > 0) {
-            chunks.add(currentChunk.toString());
-        }
+    @Test
+    void retrievalAugmentedGeneration() {
+        // Query about Spring (should return relevant info)
+        String question = "What is the Spring Framework and what are its key features?";
+        String response = ragService.query(question);
 
-        return chunks;
+        System.out.println("RAG Response about Spring:");
+        System.out.println(response);
+
+        // Assertions for Spring Framework query
+        assertNotNull(response);
+        assertFalse(response.isEmpty());
+    }
+
+    @Test
+    void outOfScopeQuery() {
+        // Query about something not in our knowledge base
+        String outOfScopeQuestion = "How do I implement GraphQL in Spring?";
+        String outOfScopeResponse = ragService.query(outOfScopeQuestion);
+
+        System.out.println("\nOut of scope RAG Response:");
+        System.out.println(outOfScopeResponse);
+
+        // Assertions for out-of-scope query
+        assertNotNull(outOfScopeResponse);
+        assertTrue(outOfScopeResponse.contains("don't have enough information") ||
+                outOfScopeResponse.contains("not enough information") ||
+                outOfScopeResponse.contains("cannot provide information"),
+                "Should indicate lack of information for out-of-scope questions");
     }
 }
 ```
 
-Now create a test that uses the RAG service:
+### 11.5 Running with the RAG Profile
 
-```java
-@Test
-void retrievalAugmentedGeneration() {
-    // Create the RAG service
-    RAGService ragService = new RAGService(model, embeddingModel, new ContentFetcher(new ObjectMapper()));
+To run your application with RAG enabled, set the active profile:
 
-    // Add content to the knowledge base
-    ragService.addContentToKnowledgeBase(
-            "https://spring.io/blog/2024/01/25/spring-ai-in-action",
-            "Spring AI Blog");
+```bash
+# Command line
+./gradlew bootRun --args='--spring.profiles.active=rag'
 
-    // Add more content if needed
-    ragService.addContentToKnowledgeBase(
-            "https://spring.io/blog/2024/03/11/spring-ai-at-spring-one-essentials",
-            "Spring One Blog");
-
-    // Query the RAG system
-    String question = "What are the key features of Spring AI?";
-    String response = ragService.query(question, 3);
-
-    System.out.println("RAG Response:");
-    System.out.println(response);
-
-    // Test with a question that is out of scope
-    String outOfScopeQuestion = "How do I implement OAuth2 in Spring Security?";
-    String outOfScopeResponse = ragService.query(outOfScopeQuestion, 3);
-
-    System.out.println("\nOut of scope RAG Response:");
-    System.out.println(outOfScopeResponse);
-
-    // Assertions
-    assertFalse(response.isEmpty());
-    assertTrue(outOfScopeResponse.contains("don't have enough information") ||
-               outOfScopeResponse.contains("not enough information"),
-               "Should indicate lack of information for out-of-scope questions");
-}
+# In IntelliJ IDEA
+# Edit Run Configuration -> Program arguments: --spring.profiles.active=rag
 ```
+
+By using the profile approach, you ensure that the RAG system only loads its knowledge base when explicitly enabled, preventing unnecessary processing during regular application use or other tests.
+
+### Key Benefits of This Implementation
+
+1. **Automated Document Processing**: Uses Spring AI's document readers to handle HTML parsing automatically.
+2. **Efficient Chunking**: TokenTextSplitter breaks documents into appropriate chunks for vector embedding.
+3. **Proper Separation of Concerns**: Configuration, service, and data loading are properly separated.
+4. **Profile-Based Activation**: The RAG system only loads when the profile is active.
+5. **Spring AI's Built-in RAG Support**: QuestionAnswerAdvisor handles the complex RAG workflow for you.
+
+The RAG system you've built can be extended with additional knowledge sources by adding more URLs or document readers to the configuration.
 
 ## Conclusion
 
