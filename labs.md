@@ -851,6 +851,103 @@ By using the profile approach, you ensure that the RAG system only loads its kno
 
 The RAG system you've built can be extended with additional knowledge sources by adding more URLs or document readers to the configuration.
 
+### 11.6 Incorporating PDF Documents into RAG
+
+While web content is easily accessible using the JsoupDocumentReader, many valuable information sources exist as PDF documents. Let's extend our RAG system to incorporate PDF documents:
+
+```java
+// Add the required PDF document reader dependency in build.gradle.kts
+dependencies {
+    // Existing dependencies...
+    implementation("org.springframework.ai:spring-ai-pdf-document-reader")
+}
+```
+
+First, place your PDF files in a resources directory, such as `src/main/resources/pdfs/`.
+
+Then, update your configuration to process these PDF files:
+
+```java
+@Configuration
+public class AppConfig {
+    // Existing URLs and configuration...
+
+    // Reference the PDF file from resources
+    @Value("classpath:/pdfs/your_document.pdf")
+    private Resource pdfDocument;
+
+    @Bean
+    @Profile("rag")
+    ApplicationRunner loadVectorStore(VectorStore vectorStore) {
+        return args -> {
+            // Process URLs (already implemented)
+            List.of(SPRING_URL /*, other URLs */).forEach(url -> {
+                // Existing URL processing code...
+            });
+
+            // Add PDF to the vector store
+            try {
+                System.out.println("Processing PDF document (this may take a few minutes)...");
+
+                // Option 1: Process the entire PDF
+                // PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(pdfDocument);
+
+                // Option 2: Process specific pages only (more efficient)
+                PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(pdfDocument, 5, 25);
+
+                List<Document> pdfDocuments = pdfReader.get();
+                System.out.println("Extracted " + pdfDocuments.size() + " documents from PDF");
+
+                List<Document> pdfChunks = splitter.apply(pdfDocuments);
+                System.out.println("Split into " + pdfChunks.size() + " chunks");
+
+                vectorStore.add(pdfChunks);
+                System.out.println("PDF processing complete!");
+            } catch (Exception e) {
+                System.err.println("Error processing PDF: " + e.getMessage());
+                e.printStackTrace();
+            }
+        };
+    }
+}
+```
+
+Now create a test that specifically targets information contained in your PDF:
+
+```java
+@Test
+void ragFromPdfInfo() {
+    // Query about content that should be in your PDF
+    String question = "What are the main topics covered in the PDF document?";
+    String response = ragService.query(question);
+
+    System.out.println("\nRAG Response from PDF content:");
+    System.out.println(response);
+
+    assertNotNull(response);
+    assertFalse(response.isEmpty());
+}
+```
+
+**Important notes about PDF processing:**
+
+1. **Performance**: Processing PDFs can be slow, especially for large documents. Consider:
+   - Processing only the most relevant pages
+   - Implementing a caching mechanism for the vector store
+   - Running PDF processing during application startup rather than on-demand
+
+2. **PDF Compatibility**: Some PDFs may have formatting or security settings that make extraction difficult. If you encounter issues:
+   - Try alternative PDF readers or libraries
+   - Convert problematic PDFs to text format first
+   - Use OCR tools for scanned documents
+
+3. **Memory Usage**: Large PDFs can consume significant memory. Monitor your application's memory usage and adjust your JVM settings if necessary.
+
+4. **Production Considerations**: For a production RAG system:
+   - Implement persistent storage for your vector store
+   - Consider background processing for document ingestion
+   - Add monitoring for embedding and processing performance
+
 ## Conclusion
 
 Congratulations! You've completed a comprehensive tour of Spring AI's capabilities. You've learned how to:
