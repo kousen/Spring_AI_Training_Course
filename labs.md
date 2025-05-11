@@ -841,6 +841,22 @@ To run your application with RAG enabled, set the active profile:
 
 By using the profile approach, you ensure that the RAG system only loads its knowledge base when explicitly enabled, preventing unnecessary processing during regular application use or other tests.
 
+### 11.6 Using a Persistent Vector Store
+
+For long-term persistence and better performance with large documents, you can consider using a persistent vector store like Chroma or PostgreSQL.
+
+Spring AI provides integrations with several vector store options, including:
+
+1. **SimpleVectorStore** (default, in-memory): Easiest to set up but doesn't persist data between application restarts
+2. **PostgresVectorStore**: Uses PostgreSQL with the pgvector extension
+3. **ChromaVectorStore**: Uses the Chroma vector database
+4. **PineconeVectorStore**: Uses Pinecone, a managed vector database service
+5. **WeaviateVectorStore**: Uses Weaviate, a vector search engine
+
+Each of these options has different setup requirements and performance characteristics.
+
+For this lab, we're using the SimpleVectorStore for ease of setup, but in production environments, a persistent vector store would typically be preferred.
+
 ### Key Benefits of This Implementation
 
 1. **Automated Document Processing**: Uses Spring AI's document readers to handle HTML parsing automatically.
@@ -851,7 +867,7 @@ By using the profile approach, you ensure that the RAG system only loads its kno
 
 The RAG system you've built can be extended with additional knowledge sources by adding more URLs or document readers to the configuration.
 
-### 11.6 Incorporating PDF Documents into RAG
+### 11.7 Incorporating PDF Documents into RAG
 
 While web content is easily accessible using the JsoupDocumentReader, many valuable information sources exist as PDF documents. Let's extend our RAG system to incorporate PDF documents:
 

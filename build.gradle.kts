@@ -21,11 +21,19 @@ extra["springAiVersion"] = "1.0.0-M8"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
+
+    // Spring AI models
     implementation("org.springframework.ai:spring-ai-starter-model-openai")
     implementation("org.springframework.ai:spring-ai-starter-model-anthropic")
+
+    // Vector Stores
     implementation("org.springframework.ai:spring-ai-advisors-vector-store")
+
+    // Document Readers
     implementation("org.springframework.ai:spring-ai-jsoup-document-reader")
     implementation("org.springframework.ai:spring-ai-pdf-document-reader")
+
+    // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

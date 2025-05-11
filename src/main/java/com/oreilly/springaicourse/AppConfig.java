@@ -1,5 +1,7 @@
 package com.oreilly.springaicourse;
 
+import java.util.List;
+
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.reader.jsoup.JsoupDocumentReader;
@@ -12,10 +14,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.Resource;
-
-import java.util.List;
 
 @Configuration
 public class AppConfig {
@@ -31,6 +32,8 @@ public class AppConfig {
     @Profile("rag")
     ApplicationRunner loadVectorStore(VectorStore vectorStore) {
         return args -> {
+            System.out.println("Using vector store: " + vectorStore.getClass().getSimpleName());
+
             // Process URLs
             List.of(FEUD_URL, SPRING_URL).forEach(url -> {
                 // Fetch HTML content using Jsoup
@@ -39,21 +42,37 @@ public class AppConfig {
 
                 // Split the document into chunks
                 List<Document> chunks = splitter.apply(documents);
+                System.out.println("Split into " + chunks.size() + " chunks");
 
                 // Add the chunks to the vector store
                 vectorStore.add(chunks);
             });
 
-            // Add PDF to the vector store (only once)
-            List<Document> pdfDocuments = new PagePdfDocumentReader(jobsReport2025).get();
-            System.out.println("Fetched " + pdfDocuments.size() + " documents from " + jobsReport2025.getFilename());
-            List<Document> pdfChunks = splitter.apply(pdfDocuments);
-            vectorStore.add(pdfChunks);
+            try {
+                // Add PDF to the vector store
+                System.out.println("Processing PDF document (this may take a few minutes)...");
+
+                // Process a specific page range for better performance
+                PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(jobsReport2025);
+
+                List<Document> pdfDocuments = pdfReader.get();
+                System.out.println("Fetched " + pdfDocuments.size() + " documents from " + jobsReport2025.getFilename());
+
+                List<Document> pdfChunks = splitter.apply(pdfDocuments);
+                System.out.println("Split into " + pdfChunks.size() + " chunks");
+
+                vectorStore.add(pdfChunks);
+                System.out.println("PDF processing complete!");
+            } catch (Exception e) {
+                System.err.println("Error processing PDF: " + e.getMessage());
+                throw new RuntimeException(e);
+            }
         };
     }
 
     @Bean
-    VectorStore vectorStore(EmbeddingModel embeddingModel) {
+    @Primary
+    VectorStore simpleVectorStore(EmbeddingModel embeddingModel) {
         return SimpleVectorStore.builder(embeddingModel).build();
     }
 }
