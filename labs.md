@@ -963,6 +963,164 @@ void ragFromPdfInfo() {
    - Consider background processing for document ingestion
    - Add monitoring for embedding and processing performance
 
+## Lab 12: Redis Vector Store for RAG (Optional)
+
+In production environments, you often need a persistent, scalable vector store instead of the in-memory SimpleVectorStore. Redis provides an excellent option for a production-ready vector store. This lab will guide you through setting up Redis as your vector store for the RAG system.
+
+### 12.1 Prerequisites
+
+To use Redis as a vector store, you need a running Redis instance. The easiest way to get started is with Docker:
+
+```bash
+docker run -p 6379:6379 redis/redis-stack:latest
+```
+
+This command starts Redis Stack, which includes Redis and the necessary vector search capabilities.
+
+### 12.2 Update Configuration
+
+Update your application.properties with Redis configuration:
+
+```properties
+# Redis settings
+spring.ai.vectorstore.redis.initialize-schema=true
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+spring.data.redis.username=default
+spring.data.redis.password=
+```
+
+### 12.3 Modify AppConfig to Support Redis
+
+Modify your AppConfig class to support switching between SimpleVectorStore and Redis using profiles:
+
+```java
+@Configuration
+public class AppConfig {
+    private static final String FEUD_URL = "https://en.wikipedia.org/wiki/Drake%E2%80%93Kendrick_Lamar_feud";
+    private static final String SPRING_URL = "https://en.wikipedia.org/wiki/Spring_Framework";
+
+    private final TextSplitter splitter = new TokenTextSplitter();
+
+    @Value("classpath:/pdfs/WEF_Future_of_Jobs_Report_2025.pdf")
+    private Resource jobsReport2025;
+
+    @Bean
+    @Profile("rag")
+    ApplicationRunner loadVectorStore(VectorStore vectorStore) {
+        return args -> {
+            System.out.println("Using vector store: " + vectorStore.getClass().getSimpleName());
+
+            // Process URLs
+            List.of(FEUD_URL, SPRING_URL).forEach(url -> {
+                // Fetch HTML content using Jsoup
+                List<Document> documents = new JsoupDocumentReader(url).get();
+                System.out.println("Fetched " + documents.size() + " documents from " + url);
+
+                // Split the document into chunks
+                List<Document> chunks = splitter.apply(documents);
+                System.out.println("Split into " + chunks.size() + " chunks");
+
+                // Add the chunks to the vector store
+                vectorStore.add(chunks);
+            });
+
+            try {
+                // Add PDF to the vector store
+                System.out.println("Processing PDF document (this may take a few minutes)...");
+
+                // Process a specific page range for better performance
+                PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(jobsReport2025);
+
+                List<Document> pdfDocuments = pdfReader.get();
+                System.out.println("Fetched " + pdfDocuments.size() + " documents from " + jobsReport2025.getFilename());
+
+                List<Document> pdfChunks = splitter.apply(pdfDocuments);
+                System.out.println("Split into " + pdfChunks.size() + " chunks");
+
+                vectorStore.add(pdfChunks);
+                System.out.println("PDF processing complete!");
+            } catch (Exception e) {
+                System.err.println("Error processing PDF: " + e.getMessage());
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    @Bean
+    @Profile("!redis")
+    VectorStore simpleVectorStore(EmbeddingModel embeddingModel) {
+        return SimpleVectorStore.builder(embeddingModel).build();
+    }
+}
+```
+
+The key changes are:
+1. Using the `@Profile("!redis")` annotation to only create the SimpleVectorStore when Redis is not active
+2. Printing the actual vector store class being used
+3. Spring will automatically create the Redis vector store when the Redis profile is active
+
+Note that no additional configuration code is needed for Redis - Spring Boot's auto-configuration handles it based on the properties we set.
+
+### 12.4 Update RAGTests to Use Redis
+
+Modify your test class to use both the "rag" and "redis" profiles:
+
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles({"rag","redis"})
+public class RAGTests {
+
+    @Autowired
+    private RAGService ragService;
+
+    @Test
+    void ragFromWikipediaInfo() {
+        // Query about Spring (should return relevant info)
+        String question = "What is the latest version of the Spring Framework?";
+        String response = ragService.query(question);
+
+        System.out.println("RAG Response about Spring:");
+        System.out.println(response);
+
+        // Assertions for Chat Client API query
+        assertNotNull(response);
+        assertFalse(response.isEmpty());
+    }
+
+    // Additional tests...
+}
+```
+
+### 12.5 Running the Tests
+
+Run the tests with both profiles activated:
+
+```bash
+./gradlew test --tests RAGTests -Dspring.profiles.active=rag,redis
+```
+
+### 12.6 Performance Considerations
+
+When using Redis for RAG in production, consider these optimizations:
+
+1. **Pre-embedding**: Process and embed documents during off-hours or as a batch job
+2. **Batch processing**: Group documents into batches for more efficient embedding
+3. **Connection pooling**: Configure appropriate Redis connection pool settings
+4. **Monitoring**: Add metrics to track embedding and query performance
+5. **Scaling**: Consider Redis Enterprise for performance-critical applications
+6. **Persistence**: Configure Redis persistence options to prevent data loss
+
+### 12.7 Redis Vector Store Benefits
+
+Using Redis as your vector store provides several advantages:
+
+1. **Persistence**: Vector embeddings survive application restarts
+2. **Speed**: Redis provides fast vector similarity search
+3. **Scalability**: Redis can be clustered for larger datasets
+4. **Advanced search**: Supports hybrid search combining vector similarity and metadata filtering
+5. **Monitoring**: Built-in tools for monitoring performance
+
 ## Conclusion
 
 Congratulations! You've completed a comprehensive tour of Spring AI's capabilities. You've learned how to:
@@ -978,5 +1136,6 @@ Congratulations! You've completed a comprehensive tour of Spring AI's capabiliti
 - Process audio with text-to-speech and speech-to-text
 - Enhance AI responses with external content using prompt stuffing
 - Build a Retrieval-Augmented Generation (RAG) system for accurate, grounded responses
+- Use Redis as a persistent vector store for production RAG applications
 
 These skills provide a solid foundation for building AI-powered applications using the Spring ecosystem.
