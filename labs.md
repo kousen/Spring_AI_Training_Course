@@ -5,7 +5,7 @@ This series of labs will guide you through building a Spring AI application that
 ## Setup
 
 1. Make sure you have the following prerequisites:
-   - Java 21+
+   - Java 17+
    - An IDE (IntelliJ IDEA, Eclipse, VS Code)
    - API keys for OpenAI and/or Anthropic (Claude)
 
