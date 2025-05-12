@@ -38,13 +38,13 @@ Create a test method that sends a simple query to the OpenAI model using Spring 
 void simpleQuery() {
     // Create a chat client from the model
     ChatClient chatClient = ChatClient.create(model);
-    
+
     // Send a prompt and get the response
     String response = chatClient.prompt()
             .user("Why is the sky blue?")
             .call()
             .content();
-            
+
     System.out.println(response);
 }
 ```
@@ -57,13 +57,13 @@ Modify the previous test to include a system prompt that changes the model's beh
 @Test
 void simpleQueryRespondLikeAPirate() {
     ChatClient chatClient = ChatClient.create(model);
-    
+
     String response = chatClient.prompt()
             .system("You are a helpful assistant that responds like a pirate.")
             .user("Why is the sky blue?")
             .call()
             .content();
-            
+
     System.out.println(response);
 }
 ```
@@ -76,12 +76,12 @@ Create a test that retrieves and displays the full `ChatResponse` object:
 @Test
 void simpleQueryWithChatResponse() {
     ChatClient chatClient = ChatClient.create(model);
-    
+
     ChatResponse response = chatClient.prompt()
             .user("Why is the sky blue?")
             .call()
             .chatResponse();
-            
+
     assertNotNull(response);
     System.out.println("Model: " + response.getMetadata().getModel());
     System.out.println("Usage: " + response.getMetadata().getUsage());
@@ -91,9 +91,97 @@ void simpleQueryWithChatResponse() {
 
 Note how the metadata provides useful information about the model and the token usage.
 
-## Lab 2: Streaming Responses
+## Lab 2: Request and Response Logging
 
-### 2.1 Streaming with CountDownLatch
+When working with AI models, it's often useful to see exactly what prompts are being sent to the model and what responses are being received, especially for debugging. Spring AI includes a `SimpleLoggingAdvisor` that logs detailed information about each interaction.
+
+### 2.1 Configure Logging in application.properties
+
+First, enable debug logging for the advisor package in your `application.properties`:
+
+```properties
+# Enable debug logging for AI advisors
+logging.level.org.springframework.ai.chat.client.advisor=DEBUG
+```
+
+This setting ensures that the full details of prompts and responses will be logged.
+
+### 2.2 Using SimpleLoggingAdvisor
+
+Create a test that adds the `SimpleLoggingAdvisor` to see request and response details:
+
+```java
+@Test
+void loggingAdvisorTest() {
+    // Create a chat client from the model with logging advisor
+    ChatClient chatClient = ChatClient.builder(model)
+            .defaultAdvisors(new SimpleLoggingAdvisor())
+            .build();
+
+    // Send a prompt and get the response
+    String response = chatClient.prompt()
+            .user("Explain the concept of recursion in programming")
+            .call()
+            .content();
+
+    System.out.println("Response: " + response);
+}
+```
+
+When you run this test, you'll see detailed logs that include:
+- The full system and user messages being sent
+- The model's complete response
+- Timing information (how long the request took)
+
+### 2.3 Adding the Advisor to Individual Requests
+
+Instead of using the builder to set default advisors, you can add the advisor to specific requests:
+
+```java
+@Test
+void individualRequestLogging() {
+    ChatClient chatClient = ChatClient.create(model);
+
+    String response = chatClient.prompt()
+            .advisors(new SimpleLoggingAdvisor())
+            .user("What is the capital of France?")
+            .call()
+            .content();
+
+    System.out.println("Response: " + response);
+}
+```
+
+This approach is useful when you only want logging for specific requests rather than all interactions.
+
+### 2.4 Combining Multiple Advisors
+
+The real power of advisors comes when you combine them (we'll explore others like the `MessageChatMemoryAdvisor` in later labs):
+
+```java
+@Test
+void multipleAdvisors() {
+    ChatClient chatClient = ChatClient.builder(model)
+            .defaultAdvisors(
+                new SimpleLoggingAdvisor(),
+                // Other advisors can be added here
+            )
+            .build();
+
+    String response = chatClient.prompt()
+            .user("Suggest three names for a pet turtle")
+            .call()
+            .content();
+
+    System.out.println("Response: " + response);
+}
+```
+
+The advisors are applied in the order they are specified, allowing you to build powerful processing pipelines.
+
+## Lab 3: Streaming Responses
+
+### 3.1 Streaming with CountDownLatch
 
 Create a test that streams the response. While the code will work,
 the challenge in a JUnit test is to keep the test from exiting
@@ -133,7 +221,7 @@ is for completion. The `subscribe` method returns a `Disposable` object
 that can be used to cancel the subscription if needed. The `CountDownLatch`
 is used to handle the asynchronous response.
 
-### 2.2 Streaming with Reactor Operators
+### 3.2 Streaming with Reactor Operators
 
 A simpler way to handle the same issue is to use Reactor's operators
 to process the stream. This way, you can avoid using a `CountDownLatch`
@@ -159,9 +247,9 @@ void streamingChatDoOnNext() {
 }
 ```
 
-## Lab 3: Structured Data Extraction
+## Lab 4: Structured Data Extraction
 
-### 3.1 Create the Data Class
+### 4.1 Create the Data Class
 
 Create a record to represent structured data:
 
@@ -169,7 +257,7 @@ Create a record to represent structured data:
 public record ActorFilms(String actor, List<String> movies) {}
 ```
 
-### 3.2 Single Entity Extraction
+### 4.2 Single Entity Extraction
 
 Create a test that extracts a single entity:
 
@@ -189,7 +277,7 @@ void actorFilmsTest() {
 }
 ```
 
-### 3.3 Collection of Entities
+### 4.3 Collection of Entities
 
 The above approach works for a single instance of a class, even if that
 class contains a collection. However, if you want to extract a collection,
@@ -213,9 +301,9 @@ void listOfActorFilms() {
 }
 ```
 
-## Lab 4: Prompt Templates
+## Lab 5: Prompt Templates
 
-### 4.1 Inline Template
+### 5.1 Inline Template
 
 Create a test using an inline prompt template:
 
@@ -241,7 +329,7 @@ to set the values for these parameters. The `param` method can be called
 multiple times to set multiple parameters. The `text` method is used
 to set the text of the prompt.
 
-### 4.2 Template from Resource
+### 5.2 Template from Resource
 
 Spring AI includes its template engine called Spring Templates,
 which allows you to create templates in a more structured way. You can
@@ -279,9 +367,9 @@ If you need to use an alternative delimiter for the template variables,
 other than `{}`, you can specify one. See the Spring AI documentation
 for more details.
 
-## Lab 5: Chat Memory
+## Lab 6: Chat Memory
 
-### 5.1 Demonstrating Stateless Behavior
+### 6.1 Demonstrating Stateless Behavior
 
 All requests to AI tools are stateless by default, meaning no
 conversation history is retained between requests. This is useful
@@ -316,7 +404,7 @@ void defaultRequestsAreStateless() {
 }
 ```
 
-### 5.2 Adding Memory to Retain Conversation State
+### 6.2 Adding Memory to Retain Conversation State
 
 Use the `ChatMemory` abstraction to maintain the previous user and
 assistant messages. Fortunately, you can autowire in a `ChatMemory` bean.
@@ -388,9 +476,9 @@ to the test class:
 private ChatClient chatClient;
 ```
 
-## Lab 6: Vision Capabilities
+## Lab 7: Vision Capabilities
 
-### 6.1 Local Image
+### 7.1 Local Image
 
 First, make sure you have a test image in `src/main/resources/bowl_of_fruit.png`.
 
@@ -411,7 +499,7 @@ void localVisionTest() {
 }
 ```
 
-### 6.2 Remote Image
+### 7.2 Remote Image
 
 Create a test that analyzes a remote image:
 
@@ -440,7 +528,7 @@ void remoteVisionTest() {
 This is a simple example. More commonly, you would ask an AI
 to read text from an image, like a screenshot of an error message.
 
-## Lab 7: Image Generation
+## Lab 8: Image Generation
 
 Create a test that generates an image. Note that you can
 autowire in the `OpenAiImageModel` bean:
@@ -496,9 +584,9 @@ void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOExcep
 
 You can change the file name and format as needed.
 
-## Lab 8: AI Tools
+## Lab 9: AI Tools
 
-### 8.1 Create a Tool
+### 9.1 Create a Tool
 
 Create a DateTimeTools class that the AI can use:
 
@@ -520,7 +608,7 @@ class DateTimeTools {
 }
 ```
 
-### 8.2 Use the Tools
+### 9.2 Use the Tools
 
 Create a test that uses the annotated methods:
 
@@ -545,9 +633,9 @@ void useDateTimeTools() {
 }
 ```
 
-## Lab 9: Audio Capabilities
+## Lab 10: Audio Capabilities
 
-### 9.1 Text-to-Speech
+### 10.1 Text-to-Speech
 
 Create a test that generates speech from text:
 
@@ -576,7 +664,7 @@ void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
 }
 ```
 
-### 9.2 Speech-to-Text
+### 10.2 Speech-to-Text
 
 First, autowire in the `src/main/resources/audio/tftjs.mp3`:
 
@@ -606,9 +694,9 @@ void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
 }
 ```
 
-## Lab 10: Refactoring for Production
+## Lab 11: Refactoring for Production
 
-### 10.1 Create a Common Setup
+### 11.1 Create a Common Setup
 
 Refactor your tests to use a common setup method:
 
@@ -627,7 +715,7 @@ void setUp() {
 }
 ```
 
-### 10.2 Add Service Classes
+### 11.2 Add Service Classes
 
 Create service classes for your application that use Spring AI under the hood.
 
@@ -652,7 +740,7 @@ public class FilmographyService {
 }
 ```
 
-### 10.3 Create API Endpoints
+### 11.3 Create API Endpoints
 
 Add a REST controller to expose your AI capabilities:
 
@@ -673,11 +761,11 @@ public class FilmographyController {
 }
 ```
 
-## Lab 11: Retrieval-Augmented Generation (RAG)
+## Lab 12: Retrieval-Augmented Generation (RAG)
 
 In this lab, you'll build a Retrieval-Augmented Generation (RAG) system using Spring AI's document readers and vector store capabilities. RAG enhances AI responses by retrieving relevant information from a knowledge base before generating answers.
 
-### 11.1 Adding Required Dependencies
+### 12.1 Adding Required Dependencies
 
 First, add the necessary dependencies to your build.gradle.kts:
 
@@ -694,7 +782,7 @@ dependencies {
 }
 ```
 
-### 11.2 Setting up the Configuration
+### 12.2 Setting up the Configuration
 
 Create a configuration class that will manage the vector store and document loading:
 
@@ -742,7 +830,7 @@ logging.level.org.springframework.ai=info
 logging.level.org.springframework.ai.chat.client.advisor=info
 ```
 
-### 11.3 Creating the RAG Service
+### 12.3 Creating the RAG Service
 
 Create a service class that handles queries against your knowledge base:
 
@@ -782,7 +870,7 @@ public class RAGService {
 }
 ```
 
-### 11.4 Testing the RAG System
+### 12.4 Testing the RAG System
 
 Create an integration test to verify your RAG system works correctly:
 
@@ -827,7 +915,7 @@ public class RAGTests {
 }
 ```
 
-### 11.5 Running with the RAG Profile
+### 12.5 Running with the RAG Profile
 
 To run your application with RAG enabled, set the active profile:
 
@@ -841,7 +929,7 @@ To run your application with RAG enabled, set the active profile:
 
 By using the profile approach, you ensure that the RAG system only loads its knowledge base when explicitly enabled, preventing unnecessary processing during regular application use or other tests.
 
-### 11.6 Using a Persistent Vector Store
+### 12.6 Using a Persistent Vector Store
 
 For long-term persistence and better performance with large documents, you can consider using a persistent vector store like Chroma or PostgreSQL.
 
@@ -867,7 +955,7 @@ For this lab, we're using the SimpleVectorStore for ease of setup, but in produc
 
 The RAG system you've built can be extended with additional knowledge sources by adding more URLs or document readers to the configuration.
 
-### 11.7 Incorporating PDF Documents into RAG
+### 12.7 Incorporating PDF Documents into RAG
 
 While web content is easily accessible using the JsoupDocumentReader, many valuable information sources exist as PDF documents. Let's extend our RAG system to incorporate PDF documents:
 
@@ -963,11 +1051,11 @@ void ragFromPdfInfo() {
    - Consider background processing for document ingestion
    - Add monitoring for embedding and processing performance
 
-## Lab 12: Redis Vector Store for RAG (Optional)
+## Lab 13: Redis Vector Store for RAG (Optional)
 
 In production environments, you often need a persistent, scalable vector store instead of the in-memory SimpleVectorStore. Redis provides an excellent option for a production-ready vector store. This lab will guide you through setting up Redis as your vector store for the RAG system.
 
-### 12.1 Prerequisites
+### 13.1 Prerequisites
 
 To use Redis as a vector store, you need a running Redis instance. The easiest way to get started is with Docker:
 
@@ -977,7 +1065,7 @@ docker run -p 6379:6379 redis/redis-stack:latest
 
 This command starts Redis Stack, which includes Redis and the necessary vector search capabilities.
 
-### 12.2 Update Configuration
+### 13.2 Update Configuration
 
 Update your application.properties with Redis configuration:
 
@@ -990,7 +1078,7 @@ spring.data.redis.username=default
 spring.data.redis.password=
 ```
 
-### 12.3 Modify AppConfig to Support Redis
+### 13.3 Modify AppConfig to Support Redis
 
 Modify your AppConfig class to support switching between SimpleVectorStore and Redis using profiles:
 
@@ -1062,7 +1150,7 @@ The key changes are:
 
 Note that no additional configuration code is needed for Redis - Spring Boot's auto-configuration handles it based on the properties we set.
 
-### 12.4 Update RAGTests to Use Redis
+### 13.4 Update RAGTests to Use Redis
 
 Modify your test class to use both the "rag" and "redis" profiles:
 
@@ -1092,7 +1180,7 @@ public class RAGTests {
 }
 ```
 
-### 12.5 Running the Tests
+### 13.5 Running the Tests
 
 Run the tests with both profiles activated:
 
@@ -1100,7 +1188,7 @@ Run the tests with both profiles activated:
 ./gradlew test --tests RAGTests -Dspring.profiles.active=rag,redis
 ```
 
-### 12.6 Performance Considerations
+### 13.6 Performance Considerations
 
 When using Redis for RAG in production, consider these optimizations:
 
@@ -1111,7 +1199,7 @@ When using Redis for RAG in production, consider these optimizations:
 5. **Scaling**: Consider Redis Enterprise for performance-critical applications
 6. **Persistence**: Configure Redis persistence options to prevent data loss
 
-### 12.7 Redis Vector Store Benefits
+### 13.7 Redis Vector Store Benefits
 
 Using Redis as your vector store provides several advantages:
 
