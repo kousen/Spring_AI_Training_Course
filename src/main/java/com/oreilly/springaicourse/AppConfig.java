@@ -25,13 +25,14 @@ public class AppConfig {
     private static final String SPRING_URL = "https://en.wikipedia.org/wiki/Spring_Framework";
 
     private final TextSplitter splitter = new TokenTextSplitter();
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Value("classpath:/pdfs/WEF_Future_of_Jobs_Report_2025.pdf")
     private Resource jobsReport2025;
 
-    // Add Redis template for checking if data exists
-    @Autowired(required = false)
-    private RedisTemplate<String, String> redisTemplate;
+    public AppConfig(@Autowired(required = false) RedisTemplate<String, String> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
     @Bean
     @Profile("rag")
