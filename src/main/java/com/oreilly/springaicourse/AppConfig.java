@@ -10,12 +10,16 @@ import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import org.springframework.ai.vectorstore.filter.MetadataFilterOperation;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.Resource;
+import org.springframework.data.redis.core.RedisTemplate;
 
 @Configuration
 public class AppConfig {
@@ -27,17 +31,61 @@ public class AppConfig {
     @Value("classpath:/pdfs/WEF_Future_of_Jobs_Report_2025.pdf")
     private Resource jobsReport2025;
 
+    @Value("${spring.ai.vectorstore.redis.force-reload:false}")
+    private boolean forceReload;
+
+    // Add Redis template for checking if data exists
+    @Autowired(required = false)
+    private RedisTemplate<String, String> redisTemplate;
+
     @Bean
     @Profile("rag")
     ApplicationRunner loadVectorStore(VectorStore vectorStore) {
         return args -> {
             System.out.println("Using vector store: " + vectorStore.getClass().getSimpleName());
 
+            // Check if we're using Redis and if data already exists
+            boolean isRedisStore = vectorStore.getClass().getSimpleName().toLowerCase().contains("redis");
+            boolean dataExists = false;
+
+            if (isRedisStore && redisTemplate != null && !forceReload) {
+                // Sample query to check if data exists by looking for existing Spring Framework content
+                try {
+                    var metadataFilter = new FilterExpressionBuilder()
+                        .eq("source", "spring_framework")
+                        .operation(MetadataFilterOperation.OR)
+                        .eq("source", "wef_jobs_report")
+                        .build();
+
+                    var results = vectorStore.similaritySearch("Spring", metadataFilter, 1);
+                    dataExists = !results.isEmpty();
+
+                    if (dataExists) {
+                        System.out.println("Data already exists in Redis vector store - skipping data loading");
+                        System.out.println("To force reloading, set spring.ai.vectorstore.redis.force-reload=true");
+                        return;
+                    }
+                } catch (Exception e) {
+                    // If the search fails, it likely means the data doesn't exist yet
+                    System.out.println("No existing data found in Redis vector store");
+                }
+            } else if (forceReload && isRedisStore) {
+                System.out.println("Force reload is enabled - reloading data");
+            }
+
+            System.out.println("Loading data into vector store");
+
             // Process URLs
             List.of(FEUD_URL, SPRING_URL).forEach(url -> {
                 // Fetch HTML content using Jsoup
                 List<Document> documents = new JsoupDocumentReader(url).get();
                 System.out.println("Fetched " + documents.size() + " documents from " + url);
+
+                // Add source metadata to help identify content later
+                documents.forEach(doc -> {
+                    String source = url.contains("Drake") ? "drake_feud" : "spring_framework";
+                    doc.getMetadata().put("source", source);
+                });
 
                 // Split the document into chunks
                 List<Document> chunks = splitter.apply(documents);
@@ -56,6 +104,12 @@ public class AppConfig {
 
                 List<Document> pdfDocuments = pdfReader.get();
                 System.out.println("Fetched " + pdfDocuments.size() + " documents from " + jobsReport2025.getFilename());
+
+                // Add source metadata to help identify PDF content
+                pdfDocuments.forEach(doc -> {
+                    doc.getMetadata().put("source", "wef_jobs_report");
+                    doc.getMetadata().put("type", "pdf");
+                });
 
                 List<Document> pdfChunks = splitter.apply(pdfDocuments);
                 System.out.println("Split into " + pdfChunks.size() + " chunks");
