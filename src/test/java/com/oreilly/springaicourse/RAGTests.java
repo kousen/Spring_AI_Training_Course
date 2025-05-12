@@ -8,7 +8,7 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("rag")
+@ActiveProfiles({"rag","redis"})
 public class RAGTests {
 
     @Autowired
