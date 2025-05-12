@@ -10,8 +10,6 @@ import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
-import org.springframework.ai.vectorstore.filter.MetadataFilterOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
@@ -31,9 +29,6 @@ public class AppConfig {
     @Value("classpath:/pdfs/WEF_Future_of_Jobs_Report_2025.pdf")
     private Resource jobsReport2025;
 
-    @Value("${spring.ai.vectorstore.redis.force-reload:false}")
-    private boolean forceReload;
-
     // Add Redis template for checking if data exists
     @Autowired(required = false)
     private RedisTemplate<String, String> redisTemplate;
@@ -48,29 +43,28 @@ public class AppConfig {
             boolean isRedisStore = vectorStore.getClass().getSimpleName().toLowerCase().contains("redis");
             boolean dataExists = false;
 
-            if (isRedisStore && redisTemplate != null && !forceReload) {
+            System.out.println("\n###################################################");
+            System.out.println("Using vector store class: " + vectorStore.getClass().getName());
+            System.out.println("Redis detection enabled: " + isRedisStore);
+            System.out.println("###################################################\n");
+
+            if (isRedisStore && redisTemplate != null) {
                 // Sample query to check if data exists by looking for existing Spring Framework content
                 try {
-                    var metadataFilter = new FilterExpressionBuilder()
-                        .eq("source", "spring_framework")
-                        .operation(MetadataFilterOperation.OR)
-                        .eq("source", "wef_jobs_report")
-                        .build();
-
-                    var results = vectorStore.similaritySearch("Spring", metadataFilter, 1);
+                    // Simple approach: just search for something we know should be there
+                    System.out.println("Checking if data exists by searching for 'Spring Framework'...");
+                    var results = vectorStore.similaritySearch("Spring Framework");
                     dataExists = !results.isEmpty();
+                    System.out.println("Search returned " + results.size() + " results");
 
                     if (dataExists) {
                         System.out.println("Data already exists in Redis vector store - skipping data loading");
-                        System.out.println("To force reloading, set spring.ai.vectorstore.redis.force-reload=true");
                         return;
                     }
                 } catch (Exception e) {
                     // If the search fails, it likely means the data doesn't exist yet
                     System.out.println("No existing data found in Redis vector store");
                 }
-            } else if (forceReload && isRedisStore) {
-                System.out.println("Force reload is enabled - reloading data");
             }
 
             System.out.println("Loading data into vector store");
