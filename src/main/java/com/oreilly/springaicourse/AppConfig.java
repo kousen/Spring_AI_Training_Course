@@ -10,14 +10,12 @@ import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.Resource;
-import org.springframework.data.redis.core.RedisTemplate;
 
 @Configuration
 public class AppConfig {
@@ -25,14 +23,9 @@ public class AppConfig {
     private static final String SPRING_URL = "https://en.wikipedia.org/wiki/Spring_Framework";
 
     private final TextSplitter splitter = new TokenTextSplitter();
-    private final RedisTemplate<String, String> redisTemplate;
 
     @Value("classpath:/pdfs/WEF_Future_of_Jobs_Report_2025.pdf")
     private Resource jobsReport2025;
-
-    public AppConfig(@Autowired(required = false) RedisTemplate<String, String> redisTemplate) {
-        this.redisTemplate = redisTemplate;
-    }
 
     @Bean
     @Profile("rag")
@@ -42,19 +35,20 @@ public class AppConfig {
 
             // Check if we're using Redis and if data already exists
             boolean isRedisStore = vectorStore.getClass().getSimpleName().toLowerCase().contains("redis");
-            boolean dataExists = false;
+            boolean dataExists;
 
             System.out.println("\n###################################################");
             System.out.println("Using vector store class: " + vectorStore.getClass().getName());
             System.out.println("Redis detection enabled: " + isRedisStore);
             System.out.println("###################################################\n");
 
-            if (isRedisStore && redisTemplate != null) {
+            if (isRedisStore) {
                 // Sample query to check if data exists by looking for existing Spring Framework content
                 try {
-                    // Simple approach: just search for something we know should be there
+                    // Simple approach: search for something we know should be there
                     System.out.println("Checking if data exists by searching for 'Spring Framework'...");
                     var results = vectorStore.similaritySearch("Spring Framework");
+                    assert results != null;
                     dataExists = !results.isEmpty();
                     System.out.println("Search returned " + results.size() + " results");
 
@@ -98,7 +92,7 @@ public class AppConfig {
                 PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(jobsReport2025);
 
                 List<Document> pdfDocuments = pdfReader.get();
-                System.out.println("Fetched " + pdfDocuments.size() + " documents from " + jobsReport2025.getFilename());
+                System.out.printf("Fetched %d documents from %s%n", pdfDocuments.size(), jobsReport2025.getFilename());
 
                 // Add source metadata to help identify PDF content
                 pdfDocuments.forEach(doc -> {
