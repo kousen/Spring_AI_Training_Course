@@ -1099,11 +1099,47 @@ public class AppConfig {
         return args -> {
             System.out.println("Using vector store: " + vectorStore.getClass().getSimpleName());
 
+            // Check if we're using Redis and if data already exists
+            boolean isRedisStore = vectorStore.getClass().getSimpleName().toLowerCase().contains("redis");
+            boolean dataExists;
+
+            System.out.println("\n###################################################");
+            System.out.println("Using vector store class: " + vectorStore.getClass().getName());
+            System.out.println("Redis detection enabled: " + isRedisStore);
+            System.out.println("###################################################\n");
+
+            if (isRedisStore) {
+                // Sample query to check if data exists by looking for existing Spring Framework content
+                try {
+                    // Simple approach: search for something we know should be there
+                    System.out.println("Checking if data exists by searching for 'Spring Framework'...");
+                    var results = vectorStore.similaritySearch("Spring Framework");
+                    dataExists = !results.isEmpty();
+                    System.out.println("Search returned " + results.size() + " results");
+
+                    if (dataExists) {
+                        System.out.println("Data already exists in Redis vector store - skipping data loading");
+                        return;
+                    }
+                } catch (Exception e) {
+                    // If the search fails, it likely means the data doesn't exist yet
+                    System.out.println("No existing data found in Redis vector store");
+                }
+            }
+
+            System.out.println("Loading data into vector store");
+
             // Process URLs
             List.of(FEUD_URL, SPRING_URL).forEach(url -> {
                 // Fetch HTML content using Jsoup
                 List<Document> documents = new JsoupDocumentReader(url).get();
                 System.out.println("Fetched " + documents.size() + " documents from " + url);
+
+                // Add source metadata to help identify content later
+                documents.forEach(doc -> {
+                    String source = url.contains("Drake") ? "drake_feud" : "spring_framework";
+                    doc.getMetadata().put("source", source);
+                });
 
                 // Split the document into chunks
                 List<Document> chunks = splitter.apply(documents);
@@ -1121,7 +1157,13 @@ public class AppConfig {
                 PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(jobsReport2025);
 
                 List<Document> pdfDocuments = pdfReader.get();
-                System.out.println("Fetched " + pdfDocuments.size() + " documents from " + jobsReport2025.getFilename());
+                System.out.printf("Fetched %d documents from %s%n", pdfDocuments.size(), jobsReport2025.getFilename());
+
+                // Add source metadata to help identify PDF content
+                pdfDocuments.forEach(doc -> {
+                    doc.getMetadata().put("source", "wef_jobs_report");
+                    doc.getMetadata().put("type", "pdf");
+                });
 
                 List<Document> pdfChunks = splitter.apply(pdfDocuments);
                 System.out.println("Split into " + pdfChunks.size() + " chunks");
@@ -1145,10 +1187,15 @@ public class AppConfig {
 
 The key changes are:
 1. Using the `@Profile("!redis")` annotation to only create the SimpleVectorStore when Redis is not active
-2. Printing the actual vector store class being used
-3. Spring will automatically create the Redis vector store when the Redis profile is active
+2. Adding data detection to check if vectors already exist in Redis
+3. Adding metadata tagging to identify the source of each document
+4. Implementing a skip mechanism to avoid reprocessing PDF documents when data exists
+5. Printing detailed information about the vector store being used
 
-Note that no additional configuration code is needed for Redis - Spring Boot's auto-configuration handles it based on the properties we set.
+The Redis data detection feature is particularly valuable as it:
+- Saves significant time by avoiding reprocessing large PDF documents
+- Prevents redundant data from being added to the vector store
+- Makes the application more efficient when restarting
 
 ### 13.4 Update RAGTests to Use Redis
 
