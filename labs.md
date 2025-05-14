@@ -95,22 +95,22 @@ Note how the metadata provides useful information about the model and the token 
 
 ## Lab 2: Request and Response Logging
 
-When working with AI models, it's often useful to see exactly what prompts are being sent to the model and what responses are being received, especially for debugging. Spring AI includes a `SimpleLoggingAdvisor` that logs detailed information about each interaction.
+When working with AI models, it's often useful to see exactly what prompts are being sent to the model and what responses are being received, especially for debugging. Spring AI includes a `SimpleLoggerAdvisor` that logs detailed information about each interaction.
 
 ### 2.1 Configure Logging in application.properties
 
-First, enable debug logging for the advisor package in your `application.properties`:
+First, enable debug logging for the advisor package in your `application.properties`. This is **required** for the SimpleLoggerAdvisor to show its output:
 
 ```properties
-# Enable debug logging for AI advisors
+# Enable debug logging for AI advisors (MUST be set to DEBUG level)
 logging.level.org.springframework.ai.chat.client.advisor=DEBUG
 ```
 
-This setting ensures that the full details of prompts and responses will be logged.
+This setting ensures that the full details of prompts and responses will be logged. Without this configuration (or if set to INFO level), you won't see the detailed logs from SimpleLoggerAdvisor.
 
-### 2.2 Using SimpleLoggingAdvisor
+### 2.2 Using SimpleLoggerAdvisor
 
-Create a test that adds the `SimpleLoggingAdvisor` to see request and response details:
+Create a test that adds the `SimpleLoggerAdvisor` to see request and response details:
 
 ```java
 @Test
