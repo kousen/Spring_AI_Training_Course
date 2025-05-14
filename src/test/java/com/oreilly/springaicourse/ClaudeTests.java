@@ -172,9 +172,10 @@ public class ClaudeTests {
 
     @Test
     void requestsAreStateless() {
+
         // ChatClient instance with memory advisor
         ChatClient chatClient = ChatClient.builder(model)
-                .defaultAdvisors(new MessageChatMemoryAdvisor(memory))
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
                 .build();
 
         System.out.println("Initial query:");

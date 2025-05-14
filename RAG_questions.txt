@@ -1,0 +1,15 @@
+ Based on the WEF Future of Jobs Report 2025 PDF in your project, here are some thoughtful questions to ask the RAG system:
+
+  1. What are the top skills employers will prioritize by 2027?
+  2. How is AI expected to impact job displacement versus creation?
+  3. What percentage of companies plan to adopt AI technologies by 2027?
+  4. Which industries are expected to see the most growth in the next few years?
+  5. What are the main barriers to technology adoption identified in the report?
+  6. How are remote work patterns expected to evolve?
+  7. What workforce strategies are companies implementing to address skills gaps?
+  8. Which emerging technologies will have the greatest impact on business growth?
+  9. What reskilling and upskilling initiatives are recommended in the report?
+  10. How do projections differ between developed and developing economies?
+
+  These questions target different aspects of the report and should demonstrate your RAG system's ability to extract and synthesize
+  relevant information.

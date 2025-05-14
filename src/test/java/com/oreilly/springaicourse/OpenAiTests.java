@@ -57,7 +57,7 @@ class OpenAiTests {
         chatClient = ChatClient.builder(model)
 //                .defaultAdvisors(
 //                        new SimpleLoggerAdvisor(),
-//                        new MessageChatMemoryAdvisor(memory))
+//                        MessageChatMemoryAdvisor.builder(memory).build())
                 .build();
 
         // Use create for defaults
@@ -184,13 +184,13 @@ class OpenAiTests {
     void requestsAreStateless() {
         // Use default memory advisor
 //        ChatClient chatClient = ChatClient.builder(model)
-//                .defaultAdvisors(new MessageChatMemoryAdvisor(memory))
+//                .defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
 //                .build();
 //
         // Or add the chat memory advisor to each request
         System.out.println("Initial query:");
         String answer1 = chatClient.prompt()
-                .advisors(new MessageChatMemoryAdvisor(memory))
+                .advisors(MessageChatMemoryAdvisor.builder(memory).build())
                 .user(u -> u
                         .text("My name is Inigo Montoya. You killed my father. Prepare to die."))
                 .call()
@@ -199,7 +199,7 @@ class OpenAiTests {
 
         System.out.println("Second query:");
         String answer2 = chatClient.prompt()
-                .advisors(new MessageChatMemoryAdvisor(memory))
+                .advisors(MessageChatMemoryAdvisor.builder(memory).build())
                 .user(u -> u.text("Who am I?"))
                 .call()
                 .content();

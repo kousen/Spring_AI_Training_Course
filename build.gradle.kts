@@ -17,7 +17,7 @@ repositories {
     mavenCentral()
 }
 
-extra["springAiVersion"] = "1.0.0-M8"
+extra["springAiVersion"] = "1.0.0-RC1"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
