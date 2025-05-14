@@ -35,7 +35,10 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-pdf-document-reader")
 
     // Testing
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        // Exclude the outdated android-json to avoid conflict with the newer org.json:json
+        exclude(group = "com.vaadin.external.google", module = "android-json")
+    }
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
