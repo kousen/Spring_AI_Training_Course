@@ -2,6 +2,8 @@
 
 This series of labs will guide you through building a Spring AI application that utilizes various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
 
+> **Note:** This project uses Spring Boot 3.4.5 and Spring AI 1.0.0-RC1. Spring AI 1.0.0-RC1 includes significant API changes, including using builder patterns for constructing advisors like `MessageChatMemoryAdvisor`.
+
 ## Setup
 
 1. Make sure you have the following prerequisites:
@@ -423,7 +425,7 @@ void requestsWithMemory() {
 
     System.out.println("Initial query with memory:");
     String answer1 = chatClient.prompt()
-            .advisors(new MessageChatMemoryAdvisor(memory))
+            .advisors(MessageChatMemoryAdvisor.builder(memory).build())
             .user(u -> u
                     .text("My name is Inigo Montoya. You killed my father. Prepare to die."))
             .call()
@@ -432,7 +434,7 @@ void requestsWithMemory() {
 
     System.out.println("Second query with memory:");
     String answer2 = chatClient.prompt()
-            .advisors(new MessageChatMemoryAdvisor(memory))
+            .advisors(MessageChatMemoryAdvisor.builder(memory).build())
             .user(u -> u.text("Who am I?"))
             .call()
             .content();
@@ -452,7 +454,7 @@ requests without having to specify the memory advisor each time.
 
 ```java
 ChatClient chatClient = ChatClient.builder(model)
-        .defaultAdvisors(new MessageChatMemoryAdvisor(memory))
+        .defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
         .build();
 ```
 
@@ -464,7 +466,7 @@ If you add that to the `setUp` method, you can remove the
 void setUp() {
     // Use builder to add default advisors
     chatClient = ChatClient.builder(model)
-            .defaultAdvisors(new MessageChatMemoryAdvisor(memory))
+            .defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
             .build();
 }
 ```
@@ -706,7 +708,7 @@ void setUp() {
     // Use builder to add default advisors if desired
     chatClient = ChatClient.builder(model)
             .defaultAdvisors(
-                    new MessageChatMemoryAdvisor(memory),
+                    MessageChatMemoryAdvisor.builder(memory).build(),
                     new SimpleLoggerAdvisor())
             .build();
 
