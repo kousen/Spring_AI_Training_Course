@@ -117,7 +117,7 @@ Create a test that adds the `SimpleLoggerAdvisor` to see request and response de
 void loggingAdvisorTest() {
     // Create a chat client from the model with logging advisor
     ChatClient chatClient = ChatClient.builder(model)
-            .defaultAdvisors(new SimpleLoggingAdvisor())
+            .defaultAdvisors(new SimpleLoggerAdvisor())
             .build();
 
     // Send a prompt and get the response
@@ -145,7 +145,7 @@ void individualRequestLogging() {
     ChatClient chatClient = ChatClient.create(model);
 
     String response = chatClient.prompt()
-            .advisors(new SimpleLoggingAdvisor())
+            .advisors(new SimpleLoggerAdvisor())
             .user("What is the capital of France?")
             .call()
             .content();
@@ -165,7 +165,7 @@ The real power of advisors comes when you combine them (we'll explore others lik
 void multipleAdvisors() {
     ChatClient chatClient = ChatClient.builder(model)
             .defaultAdvisors(
-                new SimpleLoggingAdvisor(),
+                new SimpleLoggerAdvisor(),
                 // Other advisors can be added here
             )
             .build();
