@@ -1147,10 +1147,8 @@ public class AppConfig {
             boolean isRedisStore = vectorStore.getClass().getSimpleName().toLowerCase().contains("redis");
             boolean dataExists;
 
-            System.out.println("\n###################################################");
             System.out.println("Using vector store class: " + vectorStore.getClass().getName());
             System.out.println("Redis detection enabled: " + isRedisStore);
-            System.out.println("###################################################\n");
 
             if (isRedisStore) {
                 // Sample query to check if data exists by looking for existing Spring Framework content

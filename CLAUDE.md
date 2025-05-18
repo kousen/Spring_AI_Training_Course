@@ -63,6 +63,51 @@ export OPENAI_API_KEY=your_openai_api_key
 export ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional, for Claude exercises
 ```
 
+## Common Tasks
+
+### Adding Navigation to Exercise Files
+
+To add a table of contents with navigable links to any tutorial/exercise file:
+
+1. Add a table of contents section at the top like this:
+```markdown
+## Table of Contents
+
+- [Exercise 1: Basic Setup](#exercise-1-basic-setup)
+- [Exercise 2: Advanced Features](#exercise-2-advanced-features)
+```
+
+2. For IntelliJ IDEA compatibility, use standard Markdown heading anchors (headings automatically generate anchors based on their text)
+
+3. Add return links at the end of each section:
+```markdown
+[↑ Back to table of contents](#table-of-contents)
+```
+
+Note: The anchor names in the links should match the heading text (lowercase, with hyphens replacing spaces and special characters removed).
+
+Example structure:
+```markdown
+## Table of Contents
+
+- [Lab 1: Getting Started](#lab-1-getting-started)
+- [Lab 2: Core Concepts](#lab-2-core-concepts)
+
+## Lab 1: Getting Started
+
+Content here...
+
+[↑ Back to table of contents](#table-of-contents)
+
+## Lab 2: Core Concepts
+
+Content here...
+
+[↑ Back to table of contents](#table-of-contents)
+```
+
+This pattern is useful for any long tutorial or exercise file to improve navigation.
+
 ## Code Architecture
 
 ### Key Components
