@@ -4,6 +4,24 @@ This series of labs will guide you through building a Spring AI application that
 
 > **Note:** This project uses Spring Boot 3.4.5 and Spring AI 1.0.0-RC1. Spring AI 1.0.0-RC1 includes significant API changes, including using builder patterns for constructing advisors like `MessageChatMemoryAdvisor`.
 
+## Table of Contents
+
+- [Setup](#setup)
+- [Lab 1: Basic Chat Interactions](#lab-1-basic-chat-interactions)
+- [Lab 2: Request and Response Logging](#lab-2-request-and-response-logging)
+- [Lab 3: Streaming Responses](#lab-3-streaming-responses)
+- [Lab 4: Structured Data Extraction](#lab-4-structured-data-extraction)
+- [Lab 5: Prompt Templates](#lab-5-prompt-templates)
+- [Lab 6: Chat Memory](#lab-6-chat-memory)
+- [Lab 7: Vision Capabilities](#lab-7-vision-capabilities)
+- [Lab 8: Image Generation](#lab-8-image-generation)
+- [Lab 9: AI Tools](#lab-9-ai-tools)
+- [Lab 10: Audio Capabilities](#lab-10-audio-capabilities)
+- [Lab 11: Refactoring for Production](#lab-11-refactoring-for-production)
+- [Lab 12: Retrieval-Augmented Generation (RAG)](#lab-12-retrieval-augmented-generation-rag)
+- [Lab 13: Redis Vector Store for RAG (Optional)](#lab-13-redis-vector-store-for-rag-optional)
+- [Conclusion](#conclusion)
+
 ## Setup
 
 1. Make sure you have the following prerequisites:
@@ -22,7 +40,7 @@ This series of labs will guide you through building a Spring AI application that
    ./gradlew build
    ```
 
-## Lab 1: Basic Chat Interactions
+## Lab 1: Basic Chat Interactions <a id="lab-1-basic-chat-interactions"></a>
 
 ### 1.1 A Simple Query
 
@@ -93,7 +111,7 @@ void simpleQueryWithChatResponse() {
 
 Note how the metadata provides useful information about the model and the token usage.
 
-## Lab 2: Request and Response Logging
+## Lab 2: Request and Response Logging <a id="lab-2-request-and-response-logging"></a>
 
 When working with AI models, it's often useful to see exactly what prompts are being sent to the model and what responses are being received, especially for debugging. Spring AI includes a `SimpleLoggerAdvisor` that logs detailed information about each interaction.
 
@@ -181,7 +199,7 @@ void multipleAdvisors() {
 
 The advisors are applied in the order they are specified, allowing you to build powerful processing pipelines.
 
-## Lab 3: Streaming Responses
+## Lab 3: Streaming Responses <a id="lab-3-streaming-responses"></a>
 
 ### 3.1 Streaming with CountDownLatch
 
@@ -249,7 +267,7 @@ void streamingChatDoOnNext() {
 }
 ```
 
-## Lab 4: Structured Data Extraction
+## Lab 4: Structured Data Extraction <a id="lab-4-structured-data-extraction"></a>
 
 ### 4.1 Create the Data Class
 
@@ -303,7 +321,7 @@ void listOfActorFilms() {
 }
 ```
 
-## Lab 5: Prompt Templates
+## Lab 5: Prompt Templates <a id="lab-5-prompt-templates"></a>
 
 ### 5.1 Inline Template
 
@@ -369,7 +387,7 @@ If you need to use an alternative delimiter for the template variables,
 other than `{}`, you can specify one. See the Spring AI documentation
 for more details.
 
-## Lab 6: Chat Memory
+## Lab 6: Chat Memory <a id="lab-6-chat-memory"></a>
 
 ### 6.1 Demonstrating Stateless Behavior
 
@@ -478,7 +496,7 @@ to the test class:
 private ChatClient chatClient;
 ```
 
-## Lab 7: Vision Capabilities
+## Lab 7: Vision Capabilities <a id="lab-7-vision-capabilities"></a>
 
 ### 7.1 Local Image
 
@@ -530,7 +548,7 @@ void remoteVisionTest() {
 This is a simple example. More commonly, you would ask an AI
 to read text from an image, like a screenshot of an error message.
 
-## Lab 8: Image Generation
+## Lab 8: Image Generation <a id="lab-8-image-generation"></a>
 
 Create a test that generates an image. Note that you can
 autowire in the `OpenAiImageModel` bean:
@@ -586,7 +604,7 @@ void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOExcep
 
 You can change the file name and format as needed.
 
-## Lab 9: AI Tools
+## Lab 9: AI Tools <a id="lab-9-ai-tools"></a>
 
 ### 9.1 Create a Tool
 
@@ -635,7 +653,7 @@ void useDateTimeTools() {
 }
 ```
 
-## Lab 10: Audio Capabilities
+## Lab 10: Audio Capabilities <a id="lab-10-audio-capabilities"></a>
 
 ### 10.1 Text-to-Speech (TTS)
 
@@ -696,7 +714,7 @@ void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
 }
 ```
 
-## Lab 11: Refactoring for Production
+## Lab 11: Refactoring for Production <a id="lab-11-refactoring-for-production"></a>
 
 ### 11.1 Create a Common Setup
 
@@ -763,7 +781,7 @@ public class FilmographyController {
 }
 ```
 
-## Lab 12: Retrieval-Augmented Generation (RAG)
+## Lab 12: Retrieval-Augmented Generation (RAG) <a id="lab-12-retrieval-augmented-generation-rag"></a>
 
 In this lab, you'll build a Retrieval-Augmented Generation (RAG) system using Spring AI's document readers and vector store capabilities. RAG enhances AI responses by retrieving relevant information from a knowledge base before generating answers.
 
@@ -1053,7 +1071,7 @@ void ragFromPdfInfo() {
    - Consider background processing for document ingestion
    - Add monitoring for embedding and processing performance
 
-## Lab 13: Redis Vector Store for RAG (Optional)
+## Lab 13: Redis Vector Store for RAG (Optional) <a id="lab-13-redis-vector-store-for-rag-optional"></a>
 
 In production environments, you often need a persistent, scalable vector store instead of the in-memory SimpleVectorStore. Redis provides an excellent option for a production-ready vector store. This lab will guide you through setting up Redis as your vector store for the RAG system.
 
@@ -1258,7 +1276,7 @@ Using Redis as your vector store provides several advantages:
 4. **Advanced search**: Supports hybrid search combining vector similarity and metadata filtering
 5. **Monitoring**: Built-in tools for monitoring performance
 
-## Conclusion
+## Conclusion <a id="conclusion"></a>
 
 Congratulations! You've completed a comprehensive tour of Spring AI's capabilities. You've learned how to:
 
