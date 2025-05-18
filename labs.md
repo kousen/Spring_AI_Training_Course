@@ -1,6 +1,6 @@
 # Spring AI Course Labs
 
-This series of labs will guide you through building a Spring AI application that utilizes various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
+This series of labs will guide you through building a Spring AI application that uses various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
 
 > **Note:** This project uses Spring Boot 3.4.5 and Spring AI 1.0.0-RC1. Spring AI 1.0.0-RC1 includes significant API changes, including using builder patterns for constructing advisors like `MessageChatMemoryAdvisor`.
 
@@ -165,7 +165,7 @@ The real power of advisors comes when you combine them (we'll explore others lik
 void multipleAdvisors() {
     ChatClient chatClient = ChatClient.builder(model)
             .defaultAdvisors(
-                new SimpleLoggerAdvisor(),
+                new SimpleLoggerAdvisor()
                 // Other advisors can be added here
             )
             .build();
@@ -446,7 +446,7 @@ void requestsWithMemory() {
 }
 ```
 
-This example showed how to add chat memory to each individual
+This example showed how to add chat memory to each 
 request. However, you can also use the `ChatClient` builder
 to set the memory advisor for all requests. This is useful
 if you want to maintain the conversation state across multiple
@@ -637,7 +637,7 @@ void useDateTimeTools() {
 
 ## Lab 10: Audio Capabilities
 
-### 10.1 Text-to-Speech
+### 10.1 Text-to-Speech (TTS)
 
 Create a test that generates speech from text:
 
@@ -666,7 +666,7 @@ void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
 }
 ```
 
-### 10.2 Speech-to-Text
+### 10.2 Speech-to-Text (Transcription)
 
 First, autowire in the `src/main/resources/audio/tftjs.mp3`:
 
@@ -1017,7 +1017,7 @@ public class AppConfig {
 }
 ```
 
-Now create a test that specifically targets information contained in your PDF:
+Now create a test that specifically focuses on information contained in your PDF:
 
 ```java
 @Test

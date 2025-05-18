@@ -25,20 +25,13 @@ public class RAGService {
     }
 
     public String query(String question) {
-        // Define the instruction prompt
-        String instructionPrompt = """
-                Answer the question based ONLY on the provided context.
-                If the context doesn't contain relevant information, say
-                "I don't have enough information to answer this question."
-                """;
-
         // Create a QuestionAnswerAdvisor with the vectorStore
         QuestionAnswerAdvisor advisor = new QuestionAnswerAdvisor(vectorStore);
 
         // Use the advisor to handle the RAG workflow
         return chatClient.prompt()
                 .advisors(advisor)
-                .system(instructionPrompt)
+                .system(question)
                 .user(question)
                 .call()
                 .content();
