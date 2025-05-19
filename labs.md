@@ -19,7 +19,7 @@ This series of labs will guide you through building a Spring AI application that
 - [Lab 10: Audio Capabilities](#lab-10-audio-capabilities)
 - [Lab 11: Refactoring for Production](#lab-11-refactoring-for-production)
 - [Lab 12: Retrieval-Augmented Generation (RAG)](#lab-12-retrieval-augmented-generation-rag)
-- [Lab 13: Redis Vector Store for RAG (Optional)](#lab-13-redis-vector-store-for-rag-optional)
+- [Lab 13: Redis Vector Store for RAG](#lab-13-redis-vector-store-for-rag)
 - [Conclusion](#conclusion)
 
 ## Setup
@@ -891,15 +891,8 @@ public class RAGService {
     }
 
     public String query(String question) {
-        // Define the instruction prompt
-        String instructionPrompt = """
-                Answer the question based ONLY on the provided context.
-                If the context doesn't contain relevant information, say
-                "I don't have enough information to answer this question."
-                """;
-
         // Create a QuestionAnswerAdvisor with the vectorStore
-        QuestionAnswerAdvisor advisor = new QuestionAnswerAdvisor(vectorStore);
+        QuestionAnswerAdvisor advisor = new QuestionAnswerAdvisor(question);
 
         // Use the advisor to handle the RAG workflow
         return chatClient.prompt()
@@ -1002,7 +995,7 @@ The RAG system you've built can be extended with additional knowledge sources by
 While web content is easily accessible using the JsoupDocumentReader, many valuable information sources exist as PDF documents. Let's extend our RAG system to incorporate PDF documents:
 
 ```kotlin
-// Add the required PDF document reader dependency in build.gradle.kts
+// If it's not already there, add the required PDF document reader dependency in build.gradle.kts
 dependencies {
     // Existing dependencies...
     implementation("org.springframework.ai:spring-ai-pdf-document-reader")
@@ -1011,7 +1004,9 @@ dependencies {
 
 First, place your PDF files in a resources directory, such as `src/main/resources/pdfs/`.
 
-Then, update your configuration to process these PDF files:
+Then, update your configuration to process these PDF files. The following example shows only one
+file, but you can add as many as you need by changing the `Resource` to a collection or array
+of resources and looping through them.
 
 ```java
 @Configuration
@@ -1034,12 +1029,7 @@ public class AppConfig {
             // Add PDF to the vector store
             try {
                 System.out.println("Processing PDF document (this may take a few minutes)...");
-
-                // Option 1: Process the entire PDF
-                // PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(pdfDocument);
-
-                // Option 2: Process specific pages only (more efficient)
-                PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(pdfDocument, 5, 25);
+                PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(pdfDocument);
 
                 List<Document> pdfDocuments = pdfReader.get();
                 System.out.println("Extracted " + pdfDocuments.size() + " documents from PDF");
@@ -1095,9 +1085,9 @@ void ragFromPdfInfo() {
 
 [↑ Back to table of contents](#table-of-contents)
 
-## Lab 13: Redis Vector Store for RAG (Optional)
+## Lab 13: Redis Vector Store for RAG
 
-In production environments, you often need a persistent, scalable vector store instead of the in-memory SimpleVectorStore. Redis provides an excellent option for a production-ready vector store. This lab will guide you through setting up Redis as your vector store for the RAG system.
+In production environments, you often need a persistent, scalable vector store instead of the in-memory `SimpleVectorStore`. Redis provides an excellent option for a production-ready vector store. This lab will guide you through setting up Redis as your vector store for the RAG system.
 
 ### 13.1 Prerequisites
 
@@ -1122,9 +1112,17 @@ spring.data.redis.username=default
 spring.data.redis.password=
 ```
 
+You also need to add the Redis dependencies to your `build.gradle.kts`:
+
+```kotlin
+implementation("org.springframework.ai:spring-ai-starter-vector-store-redis")
+```
+
+That's sufficient to create and configure a Redis vector store. The Spring AI Redis integration will handle the connection and schema creation for you.
+
 ### 13.3 Modify AppConfig to Support Redis
 
-Modify your AppConfig class to support switching between SimpleVectorStore and Redis using profiles:
+Modify your AppConfig class to support switching between `SimpleVectorStore` and Redis using profiles:
 
 ```java
 @Configuration
@@ -1276,27 +1274,6 @@ Run the tests with both profiles activated:
 ```bash
 ./gradlew test --tests RAGTests -Dspring.profiles.active=rag,redis
 ```
-
-### 13.6 Performance Considerations
-
-When using Redis for RAG in production, consider these optimizations:
-
-1. **Pre-embedding**: Process and embed documents during off-hours or as a batch job
-2. **Batch processing**: Group documents into batches for more efficient embedding
-3. **Connection pooling**: Configure appropriate Redis connection pool settings
-4. **Monitoring**: Add metrics to track embedding and query performance
-5. **Scaling**: Consider Redis Enterprise for performance-critical applications
-6. **Persistence**: Configure Redis persistence options to prevent data loss
-
-### 13.7 Redis Vector Store Benefits
-
-Using Redis as your vector store provides several advantages:
-
-1. **Persistence**: Vector embeddings survive application restarts
-2. **Speed**: Redis provides fast vector similarity search
-3. **Scalability**: Redis can be clustered for larger datasets
-4. **Advanced search**: Supports hybrid search combining vector similarity and metadata filtering
-5. **Monitoring**: Built-in tools for monitoring performance
 
 [↑ Back to table of contents](#table-of-contents)
 
