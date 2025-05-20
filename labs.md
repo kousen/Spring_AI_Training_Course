@@ -2,7 +2,7 @@
 
 This series of labs will guide you through building a Spring AI application that uses various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
 
-> **Note:** This project uses Spring Boot 3.4.5 and Spring AI 1.0.0-RC1. Spring AI 1.0.0-RC1 includes significant API changes, including using builder patterns for constructing advisors like `MessageChatMemoryAdvisor`.
+> **Note:** This project uses Spring Boot 3.4.5 and Spring AI 1.0.0. Spring AI 1.0.0 includes significant API changes, including using builder patterns for constructing advisors like `MessageChatMemoryAdvisor`.
 
 ## Table of Contents
 
@@ -572,7 +572,13 @@ autowire in the `OpenAiImageModel` bean:
 void imageGenerator(@Autowired OpenAiImageModel imageModel) {
     String prompt = """
             A warrior cat rides a dragon into battle""";
-    var imagePrompt = new ImagePrompt(prompt);
+    
+    // Note: As of Spring AI 1.0.0, you must specify a model for image generation
+    var imageOptions = OpenAiImageOptions.builder()
+            .model("gpt-image-1")
+            .build();
+    
+    var imagePrompt = new ImagePrompt(prompt, imageOptions);
     ImageResponse imageResponse = imageModel.call(imagePrompt);
     
     System.out.println(imageResponse);
@@ -599,9 +605,13 @@ void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOExcep
    String prompt = """
            A warrior cat rides a dragon into battle""";
 
+   // Note: With Spring AI 1.0.0, when using "gpt-image-1" model,
+   // the response is automatically base64-encoded and you should not
+   // specify responseFormat
    var imageOptions = OpenAiImageOptions.builder()
-           .responseFormat("b64_json")
+           .model("gpt-image-1")
            .build();
+           
    var imagePrompt = new ImagePrompt(prompt, imageOptions);
    ImageResponse imageResponse = imageModel.call(imagePrompt);
    Image image = imageResponse.getResult().getOutput();
@@ -616,7 +626,7 @@ void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOExcep
 }
 ```
 
-You can change the file name and format as needed.
+You can change the file name and format as needed. For DALL-E 3 model, you can still use `responseFormat` parameter with values like "url" or "b64_json".
 
 [↑ Back to table of contents](#table-of-contents)
 
