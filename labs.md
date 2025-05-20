@@ -585,13 +585,10 @@ in a web application or save it to a file. The image is only
 available for a limited time, so be sure to download it
 if you want to keep it.
 
-Alternatively, you can configure the request to ask for a 
-Base 64 encoded image instead of a URL. The `ImageResponse` 
-object will then contain a Base 64 encoded string
-that represents the image. You can use this string to display
-the image in a web application or save it to a file. To save
-the image to a file, you can decode the Base 64 string and write
-it to a file. 
+If you use the new image model, "gpt-image-1", the 
+response is returned as a base64-encoded string. Fortunately,
+Java includes a built-in decoder that can be used to
+extract the image and save it to a file.
 
 ```java
     @Test
@@ -599,12 +596,14 @@ void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOExcep
    String prompt = """
            A warrior cat rides a dragon into battle""";
 
-   var imageOptions = OpenAiImageOptions.builder()
-           .responseFormat("b64_json")
-           .build();
-   var imagePrompt = new ImagePrompt(prompt, imageOptions);
-   ImageResponse imageResponse = imageModel.call(imagePrompt);
-   Image image = imageResponse.getResult().getOutput();
+   ImageResponse response = imageModel.call(
+           new ImagePrompt(prompt,
+                   OpenAiImageOptions.builder()
+                           .model("gpt-image-1")
+                           .build())
+   );
+
+   Image image = response.getResult().getOutput();
    assertNotNull(image);
 
    // Decode the base64 to bytes
