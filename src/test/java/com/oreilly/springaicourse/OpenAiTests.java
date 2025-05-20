@@ -237,9 +237,8 @@ class OpenAiTests {
     void imageGenerator(@Autowired OpenAiImageModel imageModel) {
         String prompt = """
                 A warrior cat rides a dragon into battle""";
-        var imagePrompt = new ImagePrompt(prompt);
-        ImageResponse imageResponse = imageModel.call(imagePrompt);
-        System.out.println(imageResponse);
+
+        System.out.println(imageModel.call(new ImagePrompt(prompt)));
     }
 
     @Test
@@ -247,12 +246,15 @@ class OpenAiTests {
         String prompt = """
             A warrior cat rides a dragon into battle""";
 
-        var imageOptions = OpenAiImageOptions.builder()
-                .responseFormat("b64_json")
-                .build();
-        var imagePrompt = new ImagePrompt(prompt, imageOptions);
-        ImageResponse imageResponse = imageModel.call(imagePrompt);
-        Image image = imageResponse.getResult().getOutput();
+        // Note: with gpt-image-1, the response is returned as a base64-encoded string
+        ImageResponse response = imageModel.call(
+                new ImagePrompt(prompt,
+                        OpenAiImageOptions.builder()
+                                .model("gpt-image-1")
+                                .build())
+        );
+
+        Image image = response.getResult().getOutput();
         assertNotNull(image);
 
         // Decode the base64 to bytes
