@@ -146,7 +146,9 @@ class OpenAiTests {
     @Test
     void listOfActorFilms() {
         List<ActorFilms> actorFilms = chatClient.prompt()
-                .user("Generate the filmography of 5 movies for Tom Hanks and Bill Murray.")
+                .user("""
+                        Generate the filmography of 5 movies
+                        for Tom Hanks and Bill Murray.""")
                 .call()
                 .entity(new ParameterizedTypeReference<>() {
                 });
@@ -161,7 +163,9 @@ class OpenAiTests {
     void promptTemplate() {
         String answer = chatClient.prompt()
                 .user(u -> u
-                        .text("Tell me the names of 5 movies whose soundtrack was composed by {composer}")
+                        .text("""
+                                Tell me the names of 5 movies
+                                whose soundtrack was composed by {composer}""")
                         .param("composer", "John Williams"))
                 .call()
                 .content();
@@ -192,7 +196,10 @@ class OpenAiTests {
         String answer1 = chatClient.prompt()
                 .advisors(MessageChatMemoryAdvisor.builder(memory).build())
                 .user(u -> u
-                        .text("My name is Inigo Montoya. You killed my father. Prepare to die."))
+                        .text("""
+                                My name is Inigo Montoya.
+                                You killed my father.
+                                Prepare to die."""))
                 .call()
                 .content();
         System.out.println(answer1);
@@ -244,7 +251,7 @@ class OpenAiTests {
     @Test
     void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOException {
         String prompt = """
-            A warrior cat rides a dragon into battle""";
+                A warrior cat rides a dragon into battle""";
 
         // Note: with gpt-image-1, the response is returned as a base64-encoded string
         ImageResponse response = imageModel.call(
@@ -261,7 +268,7 @@ class OpenAiTests {
         byte[] imageBytes = Base64.getDecoder().decode(image.getB64Json());
 
         // Write to file (e.g., PNG)
-        Files.write(Path.of("src/main/resources","output_image.png"), imageBytes);
+        Files.write(Path.of("src/main/resources", "output_image.png"), imageBytes);
 
         System.out.println("Image saved as output_image.png");
     }
