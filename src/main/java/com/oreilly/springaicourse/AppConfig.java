@@ -46,8 +46,8 @@ public class AppConfig {
                     // Simple approach: search for something we know should be there
                     System.out.println("Checking if data exists by searching for 'Spring Framework'...");
                     var results = vectorStore.similaritySearch("Spring Framework");
-                    assert results != null;
-                    dataExists = !results.isEmpty();
+                    assert results != null;  // Make warning go away -- we know the result list is never null
+                    dataExists = !results.isEmpty();  // This is the actual check
                     System.out.println("Search returned " + results.size() + " results");
 
                     if (dataExists) {
@@ -87,7 +87,7 @@ public class AppConfig {
                 System.out.println("Processing PDF document (this may take a few minutes)...");
 
                 // Process a specific page range for better performance
-                PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(jobsReport2025);
+                var pdfReader = new PagePdfDocumentReader(jobsReport2025);
 
                 List<Document> pdfDocuments = pdfReader.get();
                 System.out.printf("Fetched %d documents from %s%n", pdfDocuments.size(), jobsReport2025.getFilename());

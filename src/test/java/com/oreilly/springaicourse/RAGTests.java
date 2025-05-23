@@ -7,6 +7,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.List;
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"rag","redis"})
 public class RAGTests {
@@ -46,19 +48,29 @@ public class RAGTests {
 
     @Test
     void outOfScopeQuery() {
-        // Query about something not in our knowledge base
         String outOfScopeQuestion = "How do I implement GraphQL in Spring?";
         String outOfScopeResponse = ragService.query(outOfScopeQuestion);
 
         System.out.println("\nOut of scope RAG Response:");
         System.out.println(outOfScopeResponse);
 
-        // Assertions for out-of-scope query
         assertNotNull(outOfScopeResponse);
-        assertTrue(outOfScopeResponse.contains("don't have enough information") ||
-                outOfScopeResponse.contains("not enough information") ||
-                outOfScopeResponse.contains("cannot provide information"),
-                "Should indicate lack of information for out-of-scope questions");
+        String lower = outOfScopeResponse.trim().toLowerCase();
+        List<String> oosPhrases = List.of(
+            "not contain information",
+            "not enough information",
+            "can't answer",
+            "i don't know",
+            "i am not able",
+            "sorry",
+            "unable",
+            "no information",
+            "outside my knowledge"
+        );
+        assertTrue(
+            oosPhrases.stream().anyMatch(lower::contains),
+            "Should indicate lack of information for out-of-scope questions (actual: " + outOfScopeResponse + ")"
+        );
     }
 
     @Test

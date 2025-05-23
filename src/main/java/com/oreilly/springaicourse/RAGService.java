@@ -1,7 +1,9 @@
 package com.oreilly.springaicourse;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,21 +18,27 @@ public class RAGService {
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
 
+    private final ChatMemory memory;
+
     @Autowired
     public RAGService(
             OpenAiChatModel chatModel,
-            VectorStore vectorStore) {
+            VectorStore vectorStore, ChatMemory memory) {
         this.chatClient = ChatClient.create(chatModel);
         this.vectorStore = vectorStore;
+        this.memory = memory;
     }
 
     public String query(String question) {
         // Create a QuestionAnswerAdvisor with the vectorStore
-        QuestionAnswerAdvisor advisor = new QuestionAnswerAdvisor(vectorStore);
+        var questionAnswerAdvisor = new QuestionAnswerAdvisor(vectorStore);
+
+        // Good to use chat memory when doing RAG
+        var chatMemoryAdvisor = MessageChatMemoryAdvisor.builder(memory).build();
 
         // Use the advisor to handle the RAG workflow
         return chatClient.prompt()
-                .advisors(advisor)
+                .advisors(questionAnswerAdvisor, chatMemoryAdvisor)
                 .user(question)
                 .call()
                 .content();
