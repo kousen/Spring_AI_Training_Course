@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -126,9 +125,9 @@ class OpenAiTests {
                 .content();
 
         output.doOnNext(System.out::println)
+                .doOnError(e -> System.out.println("Error: " + e.getMessage()))
                 .doOnCancel(() -> System.out.println("Cancelled"))
                 .doOnComplete(() -> System.out.println("Completed"))
-                .doOnError(e -> System.out.println("Error: " + e.getMessage()))
                 .blockLast();
     }
 
@@ -194,19 +193,18 @@ class OpenAiTests {
         // Or add the chat memory advisor to each request
         System.out.println("Initial query:");
         String answer1 = chatClient.prompt()
-                .advisors(MessageChatMemoryAdvisor.builder(memory).build())
-                .user(u -> u
-                        .text("""
-                                My name is Inigo Montoya.
-                                You killed my father.
-                                Prepare to die."""))
+//                .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+                .user(u -> u.text("""
+                        My name is Inigo Montoya.
+                        You killed my father.
+                        Prepare to die."""))
                 .call()
                 .content();
         System.out.println(answer1);
 
         System.out.println("Second query:");
         String answer2 = chatClient.prompt()
-                .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+//                .advisors(MessageChatMemoryAdvisor.builder(memory).build())
                 .user(u -> u.text("Who am I?"))
                 .call()
                 .content();

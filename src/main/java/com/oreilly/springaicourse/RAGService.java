@@ -31,7 +31,6 @@ public class RAGService {
         // Use the advisor to handle the RAG workflow
         return chatClient.prompt()
                 .advisors(advisor)
-                .system(question)
                 .user(question)
                 .call()
                 .content();
@@ -39,7 +38,7 @@ public class RAGService {
 
     public static void main(String[] args) {
         // Create a Spring application instance
-        SpringApplication app = new SpringApplication(SpringaicourseApplication.class);
+        var app = new SpringApplication(SpringaicourseApplication.class);
 
         // Set the active profiles to "rag" and "redis"
         app.setAdditionalProfiles("rag", "redis");
