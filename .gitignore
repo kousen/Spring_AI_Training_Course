@@ -41,3 +41,5 @@ out/
 **/.DS_Store
 
 **/.claude/settings.local.json
+/src/main/resources/output_image.png
+/generated_audio.mp3
