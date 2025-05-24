@@ -3,6 +3,11 @@ package com.oreilly.springaicourse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.evaluation.RelevancyEvaluator;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.evaluation.EvaluationRequest;
+import org.springframework.ai.evaluation.EvaluationResponse;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,25 +28,48 @@ public class RAGTests {
     private OpenAiChatModel openAiModel;
     
     private ChatClient evaluatorClient;
+    private RelevancyEvaluator relevancyEvaluator;
     
     @BeforeEach
     void setUp() {
         // Create a separate ChatClient for evaluating responses
         evaluatorClient = ChatClient.create(openAiModel);
+        
+        // Create RelevancyEvaluator for testing RAG response quality
+        relevancyEvaluator = new RelevancyEvaluator(ChatClient.builder(openAiModel));
+    }
+    
+    /**
+     * Helper method to evaluate if a response is relevant using Spring AI's RelevancyEvaluator
+     */
+    private void evaluateRelevancy(String question, ChatResponse chatResponse) {
+        EvaluationRequest evaluationRequest = new EvaluationRequest(
+            question,
+            chatResponse.getMetadata().get(QuestionAnswerAdvisor.RETRIEVED_DOCUMENTS),
+            chatResponse.getResult().getOutput().getText()
+        );
+        
+        EvaluationResponse evaluationResponse = relevancyEvaluator.evaluate(evaluationRequest);
+        assertTrue(evaluationResponse.isPass(), 
+            "Response should be relevant to the question. Evaluation details: " + evaluationResponse);
     }
 
     @Test
     void ragFromWikipediaInfo() {
         // Query about Spring (should return relevant info)
         String question = "What is the latest version of the Spring Framework?";
-        String response = ragService.query(question);
+        ChatResponse chatResponse = ragService.queryWithResponse(question);
+        String response = chatResponse.getResult().getOutput().getText();
 
         System.out.println("RAG Response about Spring:");
         System.out.println(response);
 
-        // Assertions for Chat Client API query
+        // Basic assertions
         assertNotNull(response);
         assertFalse(response.isEmpty());
+        
+        // Use Spring AI's RelevancyEvaluator to validate response quality
+        evaluateRelevancy(question, chatResponse);
     }
 
     @Test
@@ -51,13 +79,18 @@ public class RAGTests {
                 What are the most transformative technology trends expected to
                 reshape global labor markets by 2030, and how does AI rank among them?
                 """;
-        String response = ragService.query(question);
+        ChatResponse chatResponse = ragService.queryWithResponse(question);
+        String response = chatResponse.getResult().getOutput().getText();
 
         System.out.println("\nRAG Response about WEF Report:");
         System.out.println(response);
 
+        // Basic assertions
         assertNotNull(response);
         assertFalse(response.isEmpty());
+        
+        // Use Spring AI's RelevancyEvaluator to validate response quality
+        evaluateRelevancy(question, chatResponse);
     }
 
     @Test
@@ -92,12 +125,17 @@ public class RAGTests {
     @Test
     void domainSpecificQuery() {
         String question = "Who won the Kendrick Lamar / Drake feud?";
-        String response = ragService.query(question);
+        ChatResponse chatResponse = ragService.queryWithResponse(question);
+        String response = chatResponse.getResult().getOutput().getText();
 
         System.out.println("\nRAG Response about Rap Beef:");
         System.out.println(response);
 
+        // Basic assertions
         assertNotNull(response);
         assertFalse(response.isEmpty());
+        
+        // Use Spring AI's RelevancyEvaluator to validate response quality
+        evaluateRelevancy(question, chatResponse);
     }
 }

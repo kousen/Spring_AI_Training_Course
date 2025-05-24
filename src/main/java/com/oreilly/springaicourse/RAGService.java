@@ -4,6 +4,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,14 @@ public class RAGService {
     }
 
     public String query(String question) {
+        return queryWithResponse(question).getResult().getOutput().getText();
+    }
+    
+    /**
+     * Query the RAG system and return the full ChatResponse with metadata.
+     * Useful for testing and accessing document context.
+     */
+    public ChatResponse queryWithResponse(String question) {
         // Create a QuestionAnswerAdvisor with the vectorStore
         var questionAnswerAdvisor = new QuestionAnswerAdvisor(vectorStore);
 
@@ -41,7 +50,7 @@ public class RAGService {
                 .advisors(questionAnswerAdvisor, chatMemoryAdvisor)
                 .user(question)
                 .call()
-                .content();
+                .chatResponse();
     }
 
     public static void main(String[] args) {
