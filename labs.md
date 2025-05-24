@@ -972,7 +972,7 @@ To run your application with RAG enabled, set the active profile:
 
 By using the profile approach, you ensure that the RAG system only loads its knowledge base when explicitly enabled, preventing unnecessary processing during regular application use or other tests.
 
-### 12.6 Using a Persistent Vector Store
+### 12.5 Using a Persistent Vector Store
 
 For long-term persistence and better performance with large documents, you can consider using a persistent vector store like Chroma or PostgreSQL.
 
@@ -988,6 +988,187 @@ Each of these options has different setup requirements and performance character
 
 For this lab, we're using the SimpleVectorStore for ease of setup, but in production environments, a persistent vector store would typically be preferred.
 
+### 12.6 Testing RAG Response Quality with RelevancyEvaluator
+
+Spring AI provides a unique feature called `RelevancyEvaluator` that uses AI to evaluate the quality and relevance of RAG responses. This is particularly valuable for validating that your RAG system is working correctly and producing contextually appropriate responses.
+
+#### 12.6.1 Enhance RAGService for Testing
+
+First, modify your RAGService to provide access to the full ChatResponse object for testing:
+
+```java
+@Service
+public class RAGService {
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    private final ChatMemory memory;
+
+    @Autowired
+    public RAGService(
+            OpenAiChatModel chatModel,
+            VectorStore vectorStore, ChatMemory memory) {
+        this.chatClient = ChatClient.create(chatModel);
+        this.vectorStore = vectorStore;
+        this.memory = memory;
+    }
+
+    public String query(String question) {
+        return queryWithResponse(question).getResult().getOutput().getText();
+    }
+    
+    /**
+     * Query the RAG system and return the full ChatResponse with metadata.
+     * Useful for testing and accessing document context.
+     */
+    public ChatResponse queryWithResponse(String question) {
+        // Create a QuestionAnswerAdvisor with the vectorStore
+        var questionAnswerAdvisor = new QuestionAnswerAdvisor(vectorStore);
+
+        // Good to use chat memory when doing RAG
+        var chatMemoryAdvisor = MessageChatMemoryAdvisor.builder(memory).build();
+
+        // Use the advisor to handle the RAG workflow
+        return chatClient.prompt()
+                .advisors(questionAnswerAdvisor, chatMemoryAdvisor)
+                .user(question)
+                .call()
+                .chatResponse();
+    }
+}
+```
+
+#### 12.6.2 Update RAG Tests with RelevancyEvaluator
+
+Enhance your RAG tests to use Spring AI's semantic evaluation capabilities:
+
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles({"rag","redis"})
+public class RAGTests {
+
+    @Autowired
+    private RAGService ragService;
+    
+    @Autowired
+    private OpenAiChatModel openAiModel;
+    
+    private ChatClient evaluatorClient;
+    private RelevancyEvaluator relevancyEvaluator;
+    
+    @BeforeEach
+    void setUp() {
+        // Create a separate ChatClient for evaluating responses
+        evaluatorClient = ChatClient.create(openAiModel);
+        
+        // Create RelevancyEvaluator for testing RAG response quality
+        relevancyEvaluator = new RelevancyEvaluator(ChatClient.builder(openAiModel));
+    }
+    
+    /**
+     * Helper method to evaluate if a response is relevant using Spring AI's RelevancyEvaluator
+     */
+    private void evaluateRelevancy(String question, ChatResponse chatResponse) {
+        EvaluationRequest evaluationRequest = new EvaluationRequest(
+            question,
+            chatResponse.getMetadata().get(QuestionAnswerAdvisor.RETRIEVED_DOCUMENTS),
+            chatResponse.getResult().getOutput().getText()
+        );
+        
+        EvaluationResponse evaluationResponse = relevancyEvaluator.evaluate(evaluationRequest);
+        assertTrue(evaluationResponse.isPass(), 
+            "Response should be relevant to the question. Evaluation details: " + evaluationResponse);
+    }
+
+    @Test
+    void ragFromWikipediaInfo() {
+        // Query about Spring (should return relevant info)
+        String question = "What is the latest version of the Spring Framework?";
+        ChatResponse chatResponse = ragService.queryWithResponse(question);
+        String response = chatResponse.getResult().getOutput().getText();
+
+        System.out.println("RAG Response about Spring:");
+        System.out.println(response);
+
+        // Basic assertions
+        assertNotNull(response);
+        assertFalse(response.isEmpty());
+        
+        // Use Spring AI's RelevancyEvaluator to validate response quality
+        evaluateRelevancy(question, chatResponse);
+    }
+
+    @Test
+    void ragFromPdfInfo() {
+        // Query about the World Economic Forum report
+        String question = """
+                What are the most transformative technology trends expected to
+                reshape global labor markets by 2030, and how does AI rank among them?
+                """;
+        ChatResponse chatResponse = ragService.queryWithResponse(question);
+        String response = chatResponse.getResult().getOutput().getText();
+
+        System.out.println("\nRAG Response about WEF Report:");
+        System.out.println(response);
+
+        // Basic assertions
+        assertNotNull(response);
+        assertFalse(response.isEmpty());
+        
+        // Use Spring AI's RelevancyEvaluator to validate response quality
+        evaluateRelevancy(question, chatResponse);
+    }
+
+    @Test
+    void outOfScopeQuery() {
+        String outOfScopeQuestion = "How do I implement GraphQL in Spring?";
+        String outOfScopeResponse = ragService.query(outOfScopeQuestion);
+
+        System.out.println("\nOut of scope RAG Response:");
+        System.out.println(outOfScopeResponse);
+
+        assertNotNull(outOfScopeResponse);
+        
+        // Use AI to evaluate if the response properly indicates lack of knowledge
+        String evaluationPrompt = String.format("""
+            Does the following response properly indicate that the system doesn't have enough 
+            information to answer the question, or that the question is outside its knowledge base?
+            
+            Response to evaluate: "%s"
+            
+            Answer with only "true" or "false".
+            """, outOfScopeResponse.replace("\"", "\\\""));
+            
+        String evaluation = evaluatorClient.prompt(evaluationPrompt).call().content();
+        
+        assertTrue(
+            evaluation.trim().toLowerCase().contains("true"),
+            "AI evaluation failed - Response should indicate lack of information. " +
+            "Evaluation: " + evaluation + ", Original response: " + outOfScopeResponse
+        );
+    }
+}
+```
+
+Add the required imports to your test class:
+
+```java
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.evaluation.RelevancyEvaluator;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.evaluation.EvaluationRequest;
+import org.springframework.ai.evaluation.EvaluationResponse;
+```
+
+#### 12.6.3 Benefits of Using RelevancyEvaluator
+
+1. **Semantic Evaluation**: Goes beyond simple null/empty checks to validate actual response quality
+2. **Automated Quality Assurance**: Uses AI to evaluate AI responses, providing consistent evaluation criteria
+3. **Spring AI Specific**: Demonstrates a unique feature that differentiates Spring AI from other frameworks
+4. **Educational Value**: Shows students how to build robust, testable AI applications
+5. **Production Ready**: Provides a pattern for validating RAG systems in production environments
+
+The RelevancyEvaluator uses the original question, the retrieved document context, and the generated response to determine if the AI's answer is actually relevant and helpful. This is much more robust than string matching and provides a scalable way to validate RAG system performance.
+
 ### Key Benefits of This Implementation
 
 1. **Automated Document Processing**: Uses Spring AI's document readers to handle HTML parsing automatically.
@@ -995,6 +1176,7 @@ For this lab, we're using the SimpleVectorStore for ease of setup, but in produc
 3. **Proper Separation of Concerns**: Configuration, service, and data loading are properly separated.
 4. **Profile-Based Activation**: The RAG system only loads when the profile is active.
 5. **Spring AI's Built-in RAG Support**: QuestionAnswerAdvisor handles the complex RAG workflow for you.
+6. **Quality Validation**: RelevancyEvaluator provides semantic validation of response quality.
 
 The RAG system you've built can be extended with additional knowledge sources by adding more URLs or document readers to the configuration.
 
