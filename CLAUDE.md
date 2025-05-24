@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This Spring AI course project demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 1.0.0-M8). It showcases:
+This Spring AI course project demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 1.0.0). It showcases:
 
 - Text generation and chat capabilities
 - Structured data extraction
@@ -53,6 +53,21 @@ This Spring AI course project demonstrates integration of Large Language Models 
 # Start Redis Stack container
 docker run -p 6379:6379 redis/redis-stack:latest
 ```
+
+### Issue Management
+
+```bash
+# Create a new GitHub issue
+gh issue create --title "Issue Title" --body "Issue description"
+
+# List open issues
+gh issue list
+
+# Close an issue
+gh issue close <issue-number>
+```
+
+**Important**: Always create GitHub issues for new features, major refactors, or bug fixes before starting work. This helps with project tracking and documentation.
 
 ## Required Environment Variables
 

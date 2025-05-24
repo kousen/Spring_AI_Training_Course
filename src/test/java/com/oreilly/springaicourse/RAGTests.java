@@ -1,6 +1,9 @@
 package com.oreilly.springaicourse;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -15,6 +18,17 @@ public class RAGTests {
 
     @Autowired
     private RAGService ragService;
+    
+    @Autowired
+    private OpenAiChatModel openAiModel;
+    
+    private ChatClient evaluatorClient;
+    
+    @BeforeEach
+    void setUp() {
+        // Create a separate ChatClient for evaluating responses
+        evaluatorClient = ChatClient.create(openAiModel);
+    }
 
     @Test
     void ragFromWikipediaInfo() {
@@ -55,21 +69,23 @@ public class RAGTests {
         System.out.println(outOfScopeResponse);
 
         assertNotNull(outOfScopeResponse);
-        String lower = outOfScopeResponse.trim().toLowerCase();
-        List<String> oosPhrases = List.of(
-            "not contain information",
-            "not enough information",
-            "can't answer",
-            "i don't know",
-            "i am not able",
-            "sorry",
-            "unable",
-            "no information",
-            "outside my knowledge"
-        );
+        
+        // Use AI to evaluate if the response properly indicates lack of knowledge
+        String evaluationPrompt = String.format("""
+            Does the following response properly indicate that the system doesn't have enough 
+            information to answer the question, or that the question is outside its knowledge base?
+            
+            Response to evaluate: "%s"
+            
+            Answer with only "true" or "false".
+            """, outOfScopeResponse.replace("\"", "\\\""));
+            
+        String evaluation = evaluatorClient.prompt(evaluationPrompt).call().content();
+        
         assertTrue(
-            oosPhrases.stream().anyMatch(lower::contains),
-            "Should indicate lack of information for out-of-scope questions (actual: " + outOfScopeResponse + ")"
+            evaluation.trim().toLowerCase().contains("true"),
+            "AI evaluation failed - Response should indicate lack of information. " +
+            "Evaluation: " + evaluation + ", Original response: " + outOfScopeResponse
         );
     }
 
