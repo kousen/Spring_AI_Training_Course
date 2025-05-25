@@ -18,20 +18,25 @@ import java.util.Scanner;
 public class RAGService {
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
-
     private final ChatMemory memory;
 
     @Autowired
     public RAGService(
             OpenAiChatModel chatModel,
-            VectorStore vectorStore, ChatMemory memory) {
-        this.chatClient = ChatClient.create(chatModel);
+            VectorStore vectorStore, 
+            ChatMemory memory) {
+        // TODO: Initialize chatClient with appropriate advisors
+        // Consider using QuestionAnswerAdvisor for RAG functionality
+        // Consider using MessageChatMemoryAdvisor for conversation memory
         this.vectorStore = vectorStore;
         this.memory = memory;
+        this.chatClient = ChatClient.create(chatModel); // Basic initialization for main method
     }
 
     public String query(String question) {
-        return queryWithResponse(question).getResult().getOutput().getText();
+        // TODO: Implement RAG-powered question answering
+        // Use queryWithResponse(question).getResult().getOutput().getText()
+        return "TODO: Implement RAG functionality";
     }
     
     /**
@@ -39,20 +44,15 @@ public class RAGService {
      * Useful for testing and accessing document context.
      */
     public ChatResponse queryWithResponse(String question) {
-        // Create a QuestionAnswerAdvisor with the vectorStore
-        var questionAnswerAdvisor = new QuestionAnswerAdvisor(vectorStore);
-
-        // Good to use chat memory when doing RAG
-        var chatMemoryAdvisor = MessageChatMemoryAdvisor.builder(memory).build();
-
-        // Use the advisor to handle the RAG workflow
-        return chatClient.prompt()
-                .advisors(questionAnswerAdvisor, chatMemoryAdvisor)
-                .user(question)
-                .call()
-                .chatResponse();
+        // TODO: Implement full RAG workflow
+        // 1. Create QuestionAnswerAdvisor with vectorStore
+        // 2. Create MessageChatMemoryAdvisor with memory
+        // 3. Use advisors with chatClient to process question
+        // 4. Return full ChatResponse
+        return null;
     }
 
+    // Interactive CLI demonstration - shows how the completed RAG system works
     public static void main(String[] args) {
         // Create a Spring application instance
         var app = new SpringApplication(SpringaicourseApplication.class);

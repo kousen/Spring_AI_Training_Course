@@ -33,86 +33,32 @@ public class AppConfig {
         return args -> {
             System.out.println("Using vector store: " + vectorStore.getClass().getSimpleName());
 
-            // Check if we're using Redis and if data already exists
-            boolean isRedisStore = vectorStore.getClass().getSimpleName().toLowerCase().contains("redis");
-            boolean dataExists;
-
-            System.out.println("Using vector store class: " + vectorStore.getClass().getName());
-            System.out.println("Redis detection enabled: " + isRedisStore);
-
-            if (isRedisStore) {
-                // Sample query to check if data exists by looking for existing Spring Framework content
-                try {
-                    // Simple approach: search for something we know should be there
-                    System.out.println("Checking if data exists by searching for 'Spring Framework'...");
-                    var results = vectorStore.similaritySearch("Spring Framework");
-                    assert results != null;  // Make warning go away -- we know the result list is never null
-                    dataExists = !results.isEmpty();  // This is the actual check
-                    System.out.println("Search returned " + results.size() + " results");
-
-                    if (dataExists) {
-                        System.out.println("Data already exists in Redis vector store - skipping data loading");
-                        return;
-                    }
-                } catch (Exception e) {
-                    // If the search fails, it likely means the data doesn't exist yet
-                    System.out.println("No existing data found in Redis vector store");
-                }
-            }
-
-            System.out.println("Loading data into vector store");
-
-            // Process URLs
-            List.of(FEUD_URL, SPRING_URL).forEach(url -> {
-                // Fetch HTML content using Jsoup
-                List<Document> documents = new JsoupDocumentReader(url).get();
-                System.out.println("Fetched " + documents.size() + " documents from " + url);
-
-                // Add source metadata to help identify content later
-                documents.forEach(doc -> {
-                    String source = url.contains("Drake") ? "drake_feud" : "spring_framework";
-                    doc.getMetadata().put("source", source);
-                });
-
-                // Split the document into chunks
-                List<Document> chunks = splitter.apply(documents);
-                System.out.println("Split into " + chunks.size() + " chunks");
-
-                // Add the chunks to the vector store
-                vectorStore.add(chunks);
-            });
-
-            try {
-                // Add PDF to the vector store
-                System.out.println("Processing PDF document (this may take a few minutes)...");
-
-                // Process a specific page range for better performance
-                var pdfReader = new PagePdfDocumentReader(jobsReport2025);
-
-                List<Document> pdfDocuments = pdfReader.get();
-                System.out.printf("Fetched %d documents from %s%n", pdfDocuments.size(), jobsReport2025.getFilename());
-
-                // Add source metadata to help identify PDF content
-                pdfDocuments.forEach(doc -> {
-                    doc.getMetadata().put("source", "wef_jobs_report");
-                    doc.getMetadata().put("type", "pdf");
-                });
-
-                List<Document> pdfChunks = splitter.apply(pdfDocuments);
-                System.out.println("Split into " + pdfChunks.size() + " chunks");
-
-                vectorStore.add(pdfChunks);
-                System.out.println("PDF processing complete!");
-            } catch (Exception e) {
-                System.err.println("Error processing PDF: " + e.getMessage());
-                throw new RuntimeException(e);
-            }
+            // TODO: Implement document loading and processing
+            // 1. Check if using Redis and if data already exists (for efficiency)
+            // 2. Load documents from various sources:
+            //    - PDF documents using PagePdfDocumentReader
+            //    - Web pages using JsoupDocumentReader  
+            // 3. Split documents using TextSplitter
+            // 4. Add processed documents to vector store
+            
+            System.out.println("TODO: Document loading and vector store population not yet implemented");
+            System.out.println("Available sources: " + SPRING_URL + ", " + FEUD_URL + ", " + jobsReport2025.getFilename());
         };
     }
 
     @Bean
     @Profile("!redis")
     VectorStore simpleVectorStore(EmbeddingModel embeddingModel) {
+        // TODO: Create and configure SimpleVectorStore
+        // This is the default in-memory vector store
         return SimpleVectorStore.builder(embeddingModel).build();
     }
+
+    // TODO: Add Redis VectorStore configuration
+    // @Bean
+    // @Profile("redis") 
+    // VectorStore redisVectorStore(...) {
+    //     // Configure Redis-based vector store for persistence
+    // }
+
 }

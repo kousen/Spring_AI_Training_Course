@@ -271,35 +271,6 @@ void streamingChatDoOnNext() {
 }
 ```
 
-### 3.3 Streaming with StepVerifier
-
-The most robust way to test reactive streams is using Project Reactor's StepVerifier. This requires adding the reactor-test dependency to your `build.gradle.kts`:
-
-```kotlin
-testImplementation("io.projectreactor:reactor-test")  // for streaming tests
-```
-
-Then create a deterministic test:
-
-```java
-@Test // Note: Requires the reactor-test dependency
-void streamingChatStepVerifier() {
-    ChatClient chatClient = ChatClient.create(model);
-    
-    Flux<String> output = chatClient.prompt()
-            .user("Why is the sky blue?")
-            .stream()
-            .content();
-
-    output.as(StepVerifier::create)
-            .expectSubscription()
-            .thenConsumeWhile(s -> true, System.out::println)
-            .verifyComplete();
-}
-```
-
-StepVerifier provides deterministic testing for reactive streams and is the recommended approach for testing Flux/Mono operations in production code. It's more reliable than the CountDownLatch approach and demonstrates proper reactive testing patterns.
-
 [↑ Back to table of contents](#table-of-contents)
 
 ## Lab 4: Structured Data Extraction

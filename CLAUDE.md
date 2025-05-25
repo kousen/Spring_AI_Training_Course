@@ -4,10 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This Spring AI course project demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 1.0.0). It showcases:
+This is a **hands-on training course** for learning Spring AI through progressive lab exercises. The repository is structured as a proper training course where students build functionality incrementally.
+
+### Repository Structure
+
+- **`main` branch**: Starter code with TODO-guided exercises for students
+- **`solutions` branch**: Complete working implementations for reference
+- **Test classes**: Contain TODO comments guiding students through implementation
+- **Service classes**: Skeleton implementations with TODO instructions
+
+The course demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 1.0.0), covering:
 
 - Text generation and chat capabilities
-- Structured data extraction
+- Structured data extraction  
 - Prompt engineering with templates
 - Chat memory for maintaining conversation context
 - Vision capabilities for image understanding and generation
@@ -35,16 +44,20 @@ This Spring AI course project demonstrates integration of Large Language Models 
 ### Testing
 
 ```bash
-# Run all tests
+# Run all tests (many will be empty TODO stubs in main branch)
 ./gradlew test
 
-# Run specific test classes
+# Run specific test classes (students implement these progressively)
 ./gradlew test --tests OpenAiTests
 ./gradlew test --tests ClaudeTests
 ./gradlew test --tests RAGTests
 
-# Run with specific profiles
+# Run with specific profiles (for advanced RAG exercises)
 ./gradlew test --tests RAGTests -Dspring.profiles.active=rag,redis
+
+# To see working tests, switch to solutions branch
+git checkout solutions
+./gradlew test
 ```
 
 ### Redis Setup (for RAG with Redis vector store)
@@ -68,6 +81,13 @@ gh issue close <issue-number>
 ```
 
 **Important**: Always create GitHub issues for new features, major refactors, or bug fixes before starting work. This helps with project tracking and documentation.
+
+**CRITICAL REMINDER**: Before implementing any significant changes or new features:
+1. **CREATE** a GitHub issue first using `gh issue create`
+2. **IMPLEMENT** the feature or fix
+3. **CLOSE** the issue when complete using `gh issue close <number>`
+
+This workflow ensures proper documentation and project tracking. Don't forget to close issues upon completion!
 
 ## Required Environment Variables
 
@@ -173,13 +193,29 @@ The project supports two vector store implementations:
    - Requires a running Redis Stack instance
    - Includes data detection to avoid reprocessing on restart
 
-## Labs Structure
+## Training Course Structure
 
-The project follows a lab-based structure documented in `labs.md`, progressing from:
-1. Basic chat interactions
-2. Structured data extraction
-3. Prompt engineering
-4. Memory management
-5. Vision and audio capabilities
-6. RAG implementation
-7. Vector store optimization with Redis
+This is a **hands-on training course** where students implement Spring AI functionality progressively:
+
+### Learning Approach
+- **Main branch**: Students start here with TODO-guided starter code
+- **Solutions branch**: Complete implementations for reference
+- **Progressive labs**: Each lab builds on previous knowledge
+- **Hands-on implementation**: Students learn by coding, not copying
+
+### Lab Progression
+The course follows a structured progression documented in `labs.md`:
+1. **Basic chat interactions** - Simple AI conversations
+2. **Streaming responses** - Real-time AI communication
+3. **Structured data extraction** - AI-powered data parsing
+4. **Prompt engineering** - Template-based prompts
+5. **Memory management** - Conversation context
+6. **Vision and audio capabilities** - Multimodal AI
+7. **RAG implementation** - Knowledge-augmented AI
+8. **Vector store optimization** - Production-ready RAG with Redis
+
+### Code Structure for Students
+- **Test classes**: Contain TODO comments guiding implementation
+- **Service classes**: Skeleton code with clear instructions
+- **Working examples**: DateTimeTools, ActorFilms (students use these)
+- **Reference implementations**: Available in solutions branch
