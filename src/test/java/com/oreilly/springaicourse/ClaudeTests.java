@@ -2,6 +2,7 @@ package com.oreilly.springaicourse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.anthropic.AnthropicChatModel;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SuppressWarnings("unused")
 @SpringBootTest
+@EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
 class ClaudeTests {
 
     @Value("classpath:movie_prompt.st")
