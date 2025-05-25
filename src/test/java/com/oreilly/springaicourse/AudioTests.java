@@ -27,24 +27,42 @@ class AudioTests {
     @Value("classpath:audio/tftjs.mp3")
     private Resource sampleAudioResource;
 
-    // === Lab 10: Audio Processing ===
-
     @Test
-    void testTextToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) throws IOException {
-        // TODO: Implement text-to-speech conversion
-        // 1. Create a SpeechPrompt with text to convert
-        // 2. Use speechModel.call() to generate audio
-        // 3. Save the result to an MP3 file in src/main/resources/
-        // 4. Print confirmation message
+    void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
+        String text = "Welcome to Spring AI, a powerful framework for integrating AI into your Spring applications.";
+        
+        var options = OpenAiAudioSpeechOptions.builder()
+                .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
+                .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
+                .speed(1.0f)
+                .build();
+        
+        var prompt = new SpeechPrompt(text, options);
+        SpeechResponse response = speechModel.call(prompt);
+        assertNotNull(response);
+        
+        // Optionally save to file for verification
+        try {
+            Files.write(Path.of("generated_audio.mp3"), response.getResult().getOutput());
+            System.out.println("Audio file generated and saved as 'generated_audio.mp3'");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Test
-    void testSpeechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
-        // TODO: Implement speech-to-text transcription
-        // 1. Create AudioTranscriptionPrompt with the sample audio resource
-        // 2. Use transcriptionModel.call() to transcribe audio
-        // 3. Print the transcribed text
-        // 4. Assert the result is not null
-    }
+    void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
+        // Optional configuration
+        var options = OpenAiAudioTranscriptionOptions.builder()
+                .language("en")
+                .prompt("Transcribe this audio file.")
+                .temperature(0.0f)
+                .responseFormat(OpenAiAudioApi.TranscriptResponseFormat.TEXT)
+                .build();
 
+        var prompt = new AudioTranscriptionPrompt(sampleAudioResource, options);
+        AudioTranscriptionResponse response = transcriptionModel.call(prompt);
+        assertNotNull(response);
+        System.out.println("Transcription: " + response.getResult().getOutput());
+    }
 }
