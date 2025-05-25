@@ -89,6 +89,36 @@ gh issue close <issue-number>
 
 This workflow ensures proper documentation and project tracking. Don't forget to close issues upon completion!
 
+## CRITICAL: Branch Management Guidelines
+
+**⚠️ NEVER merge main branch into solutions branch without careful review!**
+
+### Branch Purposes
+- **`main` branch**: Starter code with TODO stubs for students
+- **`solutions` branch**: Complete working implementations for reference
+
+### Safe Merge Practices
+1. **Before any merge**: Always check target branch has complete implementations
+2. **Use selective merging**: Cherry-pick specific commits rather than full merges
+3. **Documentation-only merges**: Only merge documentation/config changes, never test code
+4. **Verify after merge**: Run tests to ensure solutions still work
+
+### Emergency Recovery
+If solutions are accidentally overwritten:
+```bash
+# Find the last good commit with complete implementations
+git log --oneline solutions --grep="complete\|implement\|working"
+
+# Restore specific files from earlier commit
+git checkout <good-commit-hash> -- src/test/java/com/oreilly/springaicourse/
+git checkout <good-commit-hash> -- src/main/java/com/oreilly/springaicourse/
+
+# Commit the restoration
+git commit -m "Restore complete implementations from backup"
+```
+
+**Remember**: Solutions branch should NEVER have TODO comments in test methods!
+
 ## Required Environment Variables
 
 Set these environment variables before running the application:
