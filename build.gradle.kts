@@ -39,6 +39,7 @@ dependencies {
         // Exclude the outdated android-json to avoid conflict with the newer org.json:json
         exclude(group = "com.vaadin.external.google", module = "android-json")
     }
+    testImplementation("io.projectreactor:reactor-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
