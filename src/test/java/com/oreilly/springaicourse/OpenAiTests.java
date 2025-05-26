@@ -11,6 +11,7 @@ import org.springframework.ai.image.Image;
 import org.springframework.ai.image.ImagePrompt;
 import org.springframework.ai.image.ImageResponse;
 import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiImageModel;
 import org.springframework.ai.openai.OpenAiImageOptions;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,11 +28,13 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.NumberFormat;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("unused")
 @SpringBootTest
@@ -52,37 +55,77 @@ class OpenAiTests {
 
     private ChatClient chatClient;
 
+    private ChatClient evaluator;
+
     @BeforeEach
     void setUp() {
         // Use builder to add default advisors
-        chatClient = ChatClient.builder(model)
+//        chatClient = ChatClient.builder(model)
+//                .defaultAdvisors(new SimpleLoggerAdvisor())
 //                .defaultAdvisors(
 //                        new SimpleLoggerAdvisor(),
 //                        MessageChatMemoryAdvisor.builder(memory).build())
+//                .build();
+
+        // Default model
+        chatClient = ChatClient.builder(model)
+                .defaultAdvisors(new SimpleLoggerAdvisor())
                 .build();
 
-        // Use create for defaults
-        chatClient = ChatClient.create(model);
+        // "nano" model for evaluation
+        evaluator = chatClient.mutate()
+                .defaultOptions(OpenAiChatOptions.builder().model("gpt-4.1-nano-2025-04-14").build())
+                .defaultAdvisors(new SimpleLoggerAdvisor())
+                .build();
+    }
+
+    private double evaluateAnswer(String question, String answer) {
+        record AnswerQuality(String question, String answer, double score) {}
+
+        String evaluationPrompt = """
+                Evaluate the answer to the question
+                in terms of its relevance and correctness.
+                Question: {question}
+                Answer: {answer}
+                Provide a score between 0.0 and 1.0,
+                where 0.0 is completely wrong and 1.0 is perfect.
+                """;
+
+        AnswerQuality answerQuality = evaluator.prompt()
+                .user(u -> u.text(evaluationPrompt)
+                        .param("question", question)
+                        .param("answer", answer))
+                .call()
+                .entity(AnswerQuality.class);
+
+        assertNotNull(answerQuality);
+        NumberFormat numberFormat = NumberFormat.getPercentInstance();
+        System.out.println("Correctness probability: " + numberFormat.format(answerQuality.score()));
+        return answerQuality.score;
     }
 
     @Test
     void simpleQuery() {
+        String question = "Why is the sky blue?";
         String response = chatClient.prompt()
                 .advisors(new SimpleLoggerAdvisor()) // add advisor to existing chat client
-                .user("Why is the sky blue?")
+                .user(question)
                 .call()
                 .content();
         System.out.println(response);
+        assertTrue(evaluateAnswer("Why is the sky blue?", response) > 0.8);
     }
 
     @Test
     void simpleQueryRespondLikeAPirate() {
+        String question = "How many r's are in the word 'strawberry'?";
         String response = chatClient.prompt()
                 .system("You are a helpful assistant that responds like a pirate.")
-                .user("Why is the sky blue?")
+                .user(question)
                 .call()
                 .content();
         System.out.println(response);
+        assertTrue(evaluateAnswer(question, response) > 0.8);
     }
 
     @Test
@@ -155,6 +198,9 @@ class OpenAiTests {
         assertNotNull(actorFilms);
         System.out.println("Actor: " + actorFilms.actor());
         actorFilms.movies().forEach(System.out::println);
+        
+        String fullAnswer = "Actor: " + actorFilms.actor() + "\nMovies: " + String.join(", ", actorFilms.movies());
+        double score = evaluateAnswer("Generate the filmography for a random actor.", fullAnswer);
     }
 
     @Test
