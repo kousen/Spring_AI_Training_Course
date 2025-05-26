@@ -25,17 +25,12 @@ public class RAGTests {
     @Autowired
     private OpenAiChatModel openAiModel;
     
-    private ChatClient evaluatorClient;
-
     // For info, see the documentation:
     // https://docs.spring.io/spring-ai/reference/api/testing.html#_relevancy_evaluator
     private RelevancyEvaluator relevancyEvaluator;
     
     @BeforeEach
     void setUp() {
-        // Create a separate ChatClient for evaluating responses
-        evaluatorClient = ChatClient.create(openAiModel);
-        
         // Create RelevancyEvaluator for testing RAG response quality
         relevancyEvaluator = new RelevancyEvaluator(ChatClient.builder(openAiModel));
     }
@@ -97,6 +92,9 @@ public class RAGTests {
 
     @Test
     void outOfScopeQuery() {
+        // Create a separate ChatClient for evaluating responses
+        ChatClient evaluatorClient = ChatClient.create(openAiModel);
+
         String outOfScopeQuestion = "How do I implement GraphQL in Spring?";
         String outOfScopeResponse = ragService.query(outOfScopeQuestion);
 
