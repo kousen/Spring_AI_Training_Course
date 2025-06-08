@@ -69,13 +69,13 @@ class OpenAiTests {
 
         // Default model
         chatClient = ChatClient.builder(model)
-                .defaultAdvisors(new SimpleLoggerAdvisor())
+//                .defaultAdvisors(new SimpleLoggerAdvisor())
                 .build();
 
         // "nano" model for evaluation
         evaluator = chatClient.mutate()
                 .defaultOptions(OpenAiChatOptions.builder().model("gpt-4.1-nano-2025-04-14").build())
-                .defaultAdvisors(new SimpleLoggerAdvisor())
+//                .defaultAdvisors(new SimpleLoggerAdvisor())
                 .build();
     }
 
