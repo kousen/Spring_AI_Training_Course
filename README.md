@@ -11,6 +11,7 @@ This repository contains a complete Spring AI training course with both starter 
 - **`main` branch**: Starter code with TODO-guided exercises
 - **`solutions` branch**: Complete implementations for reference
 - **`labs.md`**: Step-by-step lab instructions and exercises
+- **`slides.md`**: Comprehensive Slidev presentation for training
 
 ### Prerequisites
 
@@ -73,7 +74,7 @@ Follow the exercises in [labs.md](labs.md) to build Spring AI applications from 
 ## Key Features & Technologies
 
 ### Core Spring AI Capabilities
-- **Multiple AI Providers**: OpenAI GPT-4.1, Anthropic Claude-4
+- **Multiple AI Providers**: 18+ providers including OpenAI, Anthropic, Google VertexAI, Amazon Bedrock, Ollama, and more
 - **Streaming Responses**: Real-time AI interactions with Reactor
 - **Structured Data Extraction**: Convert AI responses to Java objects
 - **Multimodal AI**: Vision (image analysis), Audio (speech-to-text, text-to-speech)
@@ -96,8 +97,10 @@ Follow the exercises in [labs.md](labs.md) to build Spring AI applications from 
 - **Profile-based Configuration**: Separate concerns with Spring profiles
 - **Primary ChatModel**: Resolve multiple AI provider ambiguity  
 - **Service Layer Architecture**: Proper separation of concerns
-- **Comprehensive Testing**: Unit and integration tests
-- **Error Handling**: Graceful degradation and meaningful error messages
+- **Comprehensive Testing**: Unit and integration tests with modern `@MockitoBean`
+- **Error Handling**: Retries, circuit breakers, and graceful degradation
+- **Cost Optimization**: Token management and model selection strategies
+- **Security & Observability**: API key management, monitoring, and tracing
 
 ## Profile Usage
 
@@ -120,11 +123,25 @@ The application uses Spring profiles for different features:
 ./gradlew bootRun --args='--spring.profiles.active=mcp-server'
 ```
 
-## Support
+## Training Materials
 
-- **Lab Instructions**: See [labs.md](labs.md)
-- **Complete Examples**: Switch to `solutions` branch
+- **Lab Instructions**: See [labs.md](labs.md) for step-by-step exercises
+- **Presentation Slides**: Use [slides.md](slides.md) with Slidev for training sessions
+- **Complete Examples**: Switch to `solutions` branch for working implementations
 - **Issues**: Report problems via GitHub issues
+
+### Using the Presentation
+
+```bash
+# Install Slidev globally
+npm install -g @slidev/cli
+
+# Start the presentation
+slidev slides.md
+
+# Export to PDF
+slidev export slides.md
+```
 
 ## License
 

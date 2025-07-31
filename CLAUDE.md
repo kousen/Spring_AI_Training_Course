@@ -10,6 +10,8 @@ This is a **hands-on training course** for learning Spring AI through progressiv
 
 - **`main` branch**: Starter code with TODO-guided exercises for students
 - **`solutions` branch**: Complete working implementations for reference
+- **`labs.md`**: 15 progressive lab exercises with step-by-step instructions
+- **`slides.md`**: Comprehensive Slidev presentation for training sessions
 - **Test classes**: Contain TODO comments guiding students through implementation
 - **Service classes**: Skeleton implementations with TODO instructions
 
@@ -223,7 +225,7 @@ This pattern is useful for any long tutorial or exercise file to improve navigat
 
 The application uses Spring profiles to enable different features:
 
-- **Default**: Basic AI chat capabilities (OpenAI GPT-4.1, Anthropic Claude-4)
+- **Default**: Basic AI chat capabilities with 18+ supported providers (OpenAI, Anthropic, Google VertexAI, Amazon Bedrock, Ollama, etc.)
 - **`rag`**: Enables Retrieval-Augmented Generation with SimpleVectorStore
 - **`redis`**: Uses Redis as the vector store instead of in-memory (use with `rag`)
 - **`mcp`**: Enables MCP client functionality to connect to external tool servers
@@ -275,19 +277,22 @@ This is a **hands-on training course** where students implement Spring AI functi
 - **Hands-on implementation**: Students learn by coding, not copying
 
 ### Lab Progression
-The course follows a structured progression documented in `labs.md`:
+The course follows a structured progression documented in `labs.md` with 15 comprehensive labs:
 1. **Basic chat interactions** - Simple AI conversations
-2. **Request/response logging** - Debug AI interactions
+2. **Request/response logging** - Debug AI interactions  
 3. **Streaming responses** - Real-time AI communication
 4. **Structured data extraction** - AI-powered data parsing
 5. **Prompt engineering** - Template-based prompts
 6. **Memory management** - Conversation context
-7. **Vision and audio capabilities** - Multimodal AI
-8. **Production refactoring** - Service and controller patterns
-9. **RAG implementation** - Knowledge-augmented AI
-10. **Vector store optimization** - Production-ready RAG with Redis
-11. **MCP client** - Connect to external tool servers
-12. **MCP server** - Create your own tool servers
+7. **Vision capabilities** - Image analysis with AI
+8. **Image generation** - AI-created images
+9. **AI Tools (Function calling)** - Extend AI with custom methods
+10. **Audio transcription** - Speech-to-text processing
+11. **Production refactoring** - Service and controller patterns
+12. **RAG implementation** - Knowledge-augmented AI
+13. **Vector store optimization** - Production-ready RAG with Redis
+14. **MCP client** - Connect to external tool servers
+15. **MCP server** - Create your own tool servers
 
 ### Code Structure for Students
 - **Test classes**: Contain TODO comments guiding implementation
@@ -320,3 +325,36 @@ For RAG with Redis (profile: `rag,redis`):
 ```bash
 docker run -p 6379:6379 redis/redis-stack:latest
 ```
+
+## Training Materials Usage
+
+### Presentation Slides
+The repository includes comprehensive Slidev presentation slides (`slides.md`) for training sessions:
+
+```bash
+# Install Slidev globally
+npm install -g @slidev/cli
+
+# Start presentation mode
+slidev slides.md
+
+# Export to PDF
+slidev export slides.md
+
+# Export to static site
+slidev build slides.md
+```
+
+### Presentation Features
+- **15 lab progression**: Matches the complete lab sequence
+- **Interactive code examples**: Magic-move animations and progressive disclosure
+- **Provider overview**: Comprehensive list of 18+ supported AI providers
+- **Production patterns**: Error handling, testing, cost optimization
+- **Modern practices**: Updated with `@MockitoBean` and Spring Boot 3.5.4 patterns
+- **Proper Slidev structure**: Images in `public/images/` for correct rendering
+
+### Training Session Structure
+- **Duration**: 3-4 hours with hands-on exercises
+- **Format**: Progressive lab implementation with slide support
+- **Materials**: Slides for concepts, labs.md for step-by-step implementation
+- **Branches**: Start with `main` (TODO stubs), reference `solutions` when needed
