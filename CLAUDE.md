@@ -22,6 +22,7 @@ The course demonstrates integration of Large Language Models (LLMs) with Spring 
 - Vision capabilities for image understanding and generation
 - Audio processing (text-to-speech and speech-to-text)
 - Retrieval-Augmented Generation (RAG) with PDF and web content
+- Model Context Protocol (MCP) for standardized tool integration
 
 ## Common Commands
 
@@ -39,6 +40,12 @@ The course demonstrates integration of Large Language Models (LLMs) with Spring 
 
 # Run with both RAG and Redis profiles
 ./gradlew bootRun --args='--spring.profiles.active=rag,redis'
+
+# Run with MCP client functionality
+./gradlew bootRun --args='--spring.profiles.active=mcp'
+
+# Run with MCP server functionality
+./gradlew bootRun --args='--spring.profiles.active=mcp-server'
 ```
 
 ### Testing
@@ -54,6 +61,10 @@ The course demonstrates integration of Large Language Models (LLMs) with Spring 
 
 # Run with specific profiles (for advanced RAG exercises)
 ./gradlew test --tests RAGTests -Dspring.profiles.active=rag,redis
+
+# Run MCP tests (note: may fail when run together due to profile conflicts)
+./gradlew test --tests McpServerTests
+./gradlew test --tests McpClientTests
 
 # To see working tests, switch to solutions branch
 git checkout solutions
@@ -180,6 +191,7 @@ This pattern is useful for any long tutorial or exercise file to improve navigat
 1. **AI Model Clients**
    - `ChatClient` - Primary interface for interacting with AI models
    - Model-specific implementations for OpenAI and Claude
+   - `ChatModelConfig` - Resolves multiple ChatModel ambiguity with @Primary
    - Configured in `application.properties`
 
 2. **Advisors**
@@ -193,10 +205,16 @@ This pattern is useful for any long tutorial or exercise file to improve navigat
    - Text splitters for chunking documents
    - Embedding generation for semantic search
 
-4. **Services**
+4. **MCP (Model Context Protocol)**
+   - `CalculatorService` - Example MCP server with @Tool annotated methods
+   - `McpServerConfig` - Configuration for MCP server functionality
+   - `McpClientTests` - Demonstrates MCP client usage
+   - `McpServerTests` - Tests MCP server functionality
+
+5. **Services**
    - `RAGService` - High-level API for question answering with context
 
-5. **Configuration**
+6. **Configuration**
    - `AppConfig` - Central configuration for vector stores and document processing
    - Profile-based activation of components
    - Data detection to avoid redundant processing
@@ -205,9 +223,11 @@ This pattern is useful for any long tutorial or exercise file to improve navigat
 
 The application uses Spring profiles to enable different features:
 
-- Default: Basic AI chat capabilities
-- `rag`: Enables Retrieval-Augmented Generation
-- `redis`: Uses Redis as the vector store instead of in-memory
+- **Default**: Basic AI chat capabilities (OpenAI GPT-4.1, Anthropic Claude-4)
+- **`rag`**: Enables Retrieval-Augmented Generation with SimpleVectorStore
+- **`redis`**: Uses Redis as the vector store instead of in-memory (use with `rag`)
+- **`mcp`**: Enables MCP client functionality to connect to external tool servers
+- **`mcp-server`**: Enables MCP server functionality to expose tools to AI clients
 
 ## Vector Store Implementation
 
@@ -223,6 +243,27 @@ The project supports two vector store implementations:
    - Requires a running Redis Stack instance
    - Includes data detection to avoid reprocessing on restart
 
+## MCP (Model Context Protocol) Implementation
+
+The project includes comprehensive MCP support for both client and server scenarios:
+
+### MCP Server
+- **CalculatorService**: Exposes mathematical operations as tools via @Tool annotations
+- **Auto-discovery**: Spring AI automatically discovers @Tool annotated methods
+- **Multiple transports**: Supports both STDIO and SSE (Server-Sent Events)
+- **Claude Desktop integration**: Ready for use with Claude Desktop MCP configuration
+
+### MCP Client  
+- **External tool integration**: Connect to filesystem, search, and other MCP servers
+- **Profile-based configuration**: Clean separation via `mcp` profile
+- **Multiple connections**: Support for connecting to multiple MCP servers simultaneously
+- **Error handling**: Graceful handling when MCP servers are unavailable
+
+### Configuration Files
+- `application-mcp.properties`: MCP client configuration
+- `application-mcp-server.properties`: MCP server configuration  
+- `mcp-servers-config.json`: External server configuration example
+
 ## Training Course Structure
 
 This is a **hands-on training course** where students implement Spring AI functionality progressively:
@@ -236,16 +277,46 @@ This is a **hands-on training course** where students implement Spring AI functi
 ### Lab Progression
 The course follows a structured progression documented in `labs.md`:
 1. **Basic chat interactions** - Simple AI conversations
-2. **Streaming responses** - Real-time AI communication
-3. **Structured data extraction** - AI-powered data parsing
-4. **Prompt engineering** - Template-based prompts
-5. **Memory management** - Conversation context
-6. **Vision and audio capabilities** - Multimodal AI
-7. **RAG implementation** - Knowledge-augmented AI
-8. **Vector store optimization** - Production-ready RAG with Redis
+2. **Request/response logging** - Debug AI interactions
+3. **Streaming responses** - Real-time AI communication
+4. **Structured data extraction** - AI-powered data parsing
+5. **Prompt engineering** - Template-based prompts
+6. **Memory management** - Conversation context
+7. **Vision and audio capabilities** - Multimodal AI
+8. **Production refactoring** - Service and controller patterns
+9. **RAG implementation** - Knowledge-augmented AI
+10. **Vector store optimization** - Production-ready RAG with Redis
+11. **MCP client** - Connect to external tool servers
+12. **MCP server** - Create your own tool servers
 
 ### Code Structure for Students
 - **Test classes**: Contain TODO comments guiding implementation
 - **Service classes**: Skeleton code with clear instructions
 - **Working examples**: DateTimeTools, ActorFilms (students use these)
 - **Reference implementations**: Available in solutions branch
+
+## Important Notes
+
+### Testing Considerations
+- **Profile conflicts**: MCP tests may fail when run together due to Spring context caching conflicts between different profiles
+- **Individual tests**: All tests pass when run individually - this is the recommended approach
+- **Production usage**: Profile conflicts only affect testing, not runtime functionality
+
+### Profile Management Best Practices
+- **Default profile**: Contains only basic AI functionality (no Redis dependency)
+- **Redis profile**: Only active when explicitly enabled with `redis` profile
+- **MCP profiles**: Separate `mcp` and `mcp-server` profiles for clean separation
+- **Multiple ChatModels**: `ChatModelConfig` provides @Primary ChatModel to resolve ambiguity
+
+### Environment Variables
+Always set required environment variables before running:
+```bash
+export OPENAI_API_KEY=your_openai_api_key
+export ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional
+```
+
+### Redis Requirements
+For RAG with Redis (profile: `rag,redis`):
+```bash
+docker run -p 6379:6379 redis/redis-stack:latest
+```

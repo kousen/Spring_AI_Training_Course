@@ -1,0 +1,54 @@
+{
+  "_comment": "MCP Servers Configuration (Alternative to Properties)",
+  "_description": "This file demonstrates the Claude Desktop format for configuring MCP servers. It can be used with spring.ai.mcp.client.stdio.servers-configuration property.",
+  
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/tmp"
+      ],
+      "env": {}
+    },
+    
+    "brave-search": {
+      "_comment": "Requires BRAVE_API_KEY environment variable",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {}
+    },
+    
+    "sqlite": {
+      "_comment": "Requires a SQLite database file",
+      "_disabled": true,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sqlite",
+        "--db-path",
+        "/path/to/database.db"
+      ],
+      "env": {}
+    },
+    
+    "local-calculator": {
+      "_comment": "Example configuration for our Spring AI MCP calculator server",
+      "_disabled": true,
+      "command": "java",
+      "args": [
+        "-Dspring.profiles.active=mcp-server",
+        "-Dspring.ai.mcp.server.stdio=true",
+        "-Dspring.main.web-application-type=none",
+        "-Dlogging.pattern.console=",
+        "-jar",
+        "/path/to/springaicourse-0.0.1-SNAPSHOT.jar"
+      ],
+      "env": {}
+    }
+  }
+}

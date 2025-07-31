@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "3.4.5"
+    id("org.springframework.boot") version "3.5.4"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -33,6 +33,11 @@ dependencies {
     // Document Readers
     implementation("org.springframework.ai:spring-ai-jsoup-document-reader")
     implementation("org.springframework.ai:spring-ai-pdf-document-reader")
+
+    // MCP (Model Context Protocol) Support
+    implementation("org.springframework.ai:spring-ai-starter-mcp-client")
+    implementation("org.springframework.ai:spring-ai-starter-mcp-server")
+    implementation("org.springframework.ai:spring-ai-starter-mcp-server-webmvc")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
