@@ -16,8 +16,10 @@ import org.springframework.ai.openai.OpenAiImageOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
 
@@ -51,6 +53,11 @@ class OpenAiTests {
 
     private ChatClient chatClient;
 
+    @Test
+    void autowiring() {
+        assertNotNull(model);
+    }
+
     @BeforeEach
     void setUp() {
         // TODO: Initialize ChatClient using ChatClient.create(model)
@@ -64,6 +71,13 @@ class OpenAiTests {
         // TODO: Create a simple chat interaction
         // Use chatClient.prompt().user("Why is the sky blue?").call().content()
         // Print the response
+        chatClient = ChatClient.create(model);
+
+        String response = chatClient.prompt()
+                .user("Why is the sky blue?")
+                .call()
+                .content();
+        System.out.println("Response: " + response);
     }
 
     @Test
