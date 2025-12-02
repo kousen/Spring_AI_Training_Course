@@ -2102,7 +2102,204 @@ public class SystemDiagnosticsService {
 }
 ```
 
-### 15.8 Best Practices for MCP Servers
+### 15.8 Optional: Osquery MCP Server (Advanced)
+
+This optional lab demonstrates the real power of MCP: providing a natural language interface to complex systems. Instead of simple calculations, we'll wrap [osquery](https://osquery.io/) - a tool that exposes operating system information as SQL tables.
+
+**Why this matters**: Users can ask "Why is my fan running?" and the AI will:
+1. Translate the question into appropriate osquery SQL
+2. Execute the query against the system
+3. Interpret the results in plain language
+
+This pattern - AI as translator between natural language and domain-specific queries - is one of the most powerful applications of LLMs.
+
+#### Prerequisites
+
+Install osquery on your system:
+
+```bash
+# macOS (Homebrew)
+brew install osquery
+
+# Ubuntu/Debian
+sudo apt-get install osquery
+
+# Windows (Chocolatey)
+choco install osquery
+```
+
+Verify installation:
+```bash
+osqueryi --version
+```
+
+#### 15.8.1 Create the Osquery Service
+
+Create a service that wraps osquery commands:
+
+```java
+@Service
+public class OsqueryService {
+    private static final Logger logger = LoggerFactory.getLogger(OsqueryService.class);
+    private static final int TIMEOUT_SECONDS = 30;
+
+    @Tool(description = """
+        Execute an osquery SQL query against the local system.
+        Osquery exposes operating system information as SQL tables.
+        Common tables include: processes, users, listening_ports, cpu_time,
+        memory_info, disk_info, system_info, and many more.
+        Example: SELECT name, pid, resident_size FROM processes ORDER BY resident_size DESC LIMIT 5
+        """)
+    public String executeQuery(String sql) {
+        logger.info("Executing osquery: {}", sql);
+        try {
+            ProcessBuilder pb = new ProcessBuilder("osqueryi", "--json", sql);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            boolean completed = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (!completed) {
+                process.destroyForcibly();
+                return "Query timed out after " + TIMEOUT_SECONDS + " seconds";
+            }
+
+            String output = new String(process.getInputStream().readAllBytes());
+            int exitCode = process.exitValue();
+
+            if (exitCode != 0) {
+                return "Query failed with exit code " + exitCode + ": " + output;
+            }
+
+            return output;
+        } catch (IOException | InterruptedException e) {
+            logger.error("Failed to execute osquery", e);
+            return "Error executing query: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = """
+        List available osquery tables that can be queried.
+        Returns table names organized by category (system, network, processes, etc.).
+        Use this to discover what information is available to query.
+        """)
+    public String listTables() {
+        return executeQuery(".tables");
+    }
+
+    @Tool(description = """
+        Get the schema (columns and types) for a specific osquery table.
+        Use this to understand what columns are available before writing a query.
+        Example: getTableSchema("processes") returns columns like pid, name, path, etc.
+        """)
+    public String getTableSchema(String tableName) {
+        return executeQuery(".schema " + tableName);
+    }
+}
+```
+
+#### 15.8.2 Configure the MCP Server
+
+Add configuration in `application-mcp-server.properties`:
+
+```properties
+# MCP Server Configuration for Osquery
+spring.ai.mcp.server.name=osquery-server
+spring.ai.mcp.server.version=1.0.0
+spring.ai.mcp.server.type=SYNC
+spring.ai.mcp.server.stdio=true
+spring.main.web-application-type=none
+logging.pattern.console=
+```
+
+#### 15.8.3 Testing the Osquery Server
+
+Create a test to verify the server works:
+
+```java
+@SpringBootTest
+@ActiveProfiles("mcp-server")
+public class OsqueryServerTests {
+
+    @Autowired
+    private OsqueryService osqueryService;
+
+    @Test
+    void executeSimpleQuery() {
+        String result = osqueryService.executeQuery(
+            "SELECT name, version FROM os_version"
+        );
+        System.out.println("OS Version: " + result);
+        assertNotNull(result);
+        assertFalse(result.contains("Error"));
+    }
+
+    @Test
+    void listAvailableTables() {
+        String tables = osqueryService.listTables();
+        System.out.println("Available tables: " + tables);
+        assertNotNull(tables);
+    }
+
+    @Test
+    void getProcessesUsingMostMemory() {
+        String result = osqueryService.executeQuery("""
+            SELECT name, pid, resident_size
+            FROM processes
+            ORDER BY resident_size DESC
+            LIMIT 10
+            """);
+        System.out.println("Top memory consumers: " + result);
+        assertNotNull(result);
+    }
+}
+```
+
+#### 15.8.4 Using with an AI Client
+
+The real magic happens when you connect an AI client. The AI can now answer questions like:
+
+- "Why is my fan running?" → Queries CPU usage, temperature sensors
+- "What's using all my memory?" → Queries processes sorted by memory
+- "Are there any suspicious network connections?" → Queries listening ports and connections
+- "What programs start automatically?" → Queries startup items
+
+Example client interaction:
+
+```java
+@Test
+void naturalLanguageSystemQuery() {
+    // The AI translates this to appropriate osquery SQL
+    String response = chatClient.prompt()
+            .user("My computer seems slow. What processes are using the most CPU and memory?")
+            .call()
+            .content();
+
+    System.out.println(response);
+    // AI will execute queries like:
+    // SELECT name, pid, cpu_time FROM processes ORDER BY cpu_time DESC LIMIT 10
+    // SELECT name, pid, resident_size FROM processes ORDER BY resident_size DESC LIMIT 10
+    // Then interpret and summarize the results
+}
+```
+
+#### 15.8.5 Why This Pattern Matters
+
+The osquery MCP server demonstrates a powerful AI application pattern:
+
+1. **Domain Complexity Hidden**: Users don't need to know SQL or osquery's 200+ tables
+2. **AI as Translator**: The LLM converts intent to precise queries
+3. **Result Interpretation**: Raw JSON/data becomes human-readable insights
+4. **Extensibility**: Same pattern works for databases, APIs, monitoring systems
+
+This "natural language interface to complex systems" pattern is applicable to:
+- Database administration ("Show me slow queries from the last hour")
+- Infrastructure monitoring ("Are any servers running low on disk space?")
+- Log analysis ("Find errors related to authentication failures")
+- API exploration ("What endpoints are available and how do I use them?")
+
+For a complete implementation, see: https://github.com/kousen/OsqueryMcpServer
+
+### 15.9 Best Practices for MCP Servers
 
 1. **Tool Naming**: Use clear, action-oriented names (e.g., `calculateTax` not `tax`)
 2. **Descriptions**: Provide detailed descriptions for tools and parameters
@@ -2131,5 +2328,6 @@ Congratulations! You've completed a comprehensive tour of Spring AI's capabiliti
 - Use Redis as a persistent vector store for production RAG applications
 - Create MCP clients to connect to external tool servers
 - Build MCP servers to expose your own tools to AI systems
+- Use the "AI as translator" pattern to provide natural language interfaces to complex systems
 
 These skills provide a solid foundation for building AI-powered applications using the Spring ecosystem.
