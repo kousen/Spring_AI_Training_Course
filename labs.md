@@ -2322,3 +2322,24 @@ Congratulations! You've completed a comprehensive tour of Spring AI's capabiliti
 - Use the "AI as translator" pattern to provide natural language interfaces to complex systems
 
 These skills provide a solid foundation for building AI-powered applications using the Spring ecosystem.
+
+### A Note on AI Agents
+
+You may have noticed we haven't explicitly discussed "AI agents" in this course. That's intentional - the term "agent" is often overloaded and can mean different things to different people. However, the building blocks you've learned are exactly what agents are composed of:
+
+- **Reasoning**: The LLM's ability to understand context and make decisions
+- **Memory**: Chat memory (Lab 6) allows agents to maintain conversation state
+- **Tools**: Function calling (Lab 10) lets agents take actions in the world
+- **Knowledge**: RAG (Labs 12-13) gives agents access to external information
+- **Integration**: MCP (Labs 14-15) connects agents to external systems
+
+An "agent" is simply a composition of these capabilities - an LLM that can reason about a task, remember context, retrieve relevant information, and take actions to accomplish goals. The patterns you've learned (prompt engineering, structured output, advisors, tools) are the primitives from which agents are built.
+
+Spring AI provides additional support for agentic workflows including:
+- **Routing**: Direct input to specialized handlers based on content
+- **Chaining**: Sequential processing through multiple prompts
+- **Parallelization**: Concurrent processing of independent tasks
+- **Orchestrator-Workers**: Central coordinator delegating to specialized workers
+- **Evaluator-Optimizer**: Iterative refinement loops
+
+For more on these patterns, see the [Effective Agents](https://docs.spring.io/spring-ai/reference/api/effective-agents.html) section of the Spring AI documentation.
