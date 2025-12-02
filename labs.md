@@ -1702,16 +1702,7 @@ void combineDocumentationAndWebSearch() {
 }
 ```
 
-### 14.6 Using SSE Transport
-
-For servers that support Server-Sent Events (SSE), you can use HTTP-based connections:
-
-```properties
-# SSE connection to a local MCP server
-spring.ai.mcp.client.sse.connections.weather.url=http://localhost:8080
-```
-
-### 14.7 Advanced: Custom MCP Client Configuration
+### 14.6 Advanced: Custom MCP Client Configuration
 
 Create a configuration class for more control:
 
@@ -1740,7 +1731,7 @@ public class McpClientConfig {
 }
 ```
 
-### 14.8 Exercise: Research Assistant
+### 14.7 Exercise: Research Assistant
 
 Create a test that combines Context7 and Tavily to build a research assistant that can answer questions using both official documentation and current web content:
 
