@@ -2,7 +2,7 @@
 
 This series of labs will guide you through building a Spring AI application that uses various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
 
-> **Note:** This project uses Spring Boot 3.5.4 and Spring AI 1.0.0. Spring AI 1.0.0 includes significant API changes, including using builder patterns for constructing advisors like `MessageChatMemoryAdvisor`.
+> **Note:** This project uses Spring Boot 3.5.8 and Spring AI 1.1.0. Spring AI 1.1.0 includes significant API changes, including using builder patterns for constructing advisors like `MessageChatMemoryAdvisor`, and updated vector store implementations.
 
 ## Table of Contents
 
@@ -15,8 +15,8 @@ This series of labs will guide you through building a Spring AI application that
 - [Lab 6: Chat Memory](#lab-6-chat-memory)
 - [Lab 7: Vision Capabilities](#lab-7-vision-capabilities)
 - [Lab 8: Image Generation](#lab-8-image-generation)
-- [Lab 9: AI Tools](#lab-9-ai-tools)
-- [Lab 10: Audio Capabilities](#lab-10-audio-capabilities)
+- [Lab 9: Audio Capabilities](#lab-9-audio-capabilities)
+- [Lab 10: AI Tools](#lab-10-ai-tools)
 - [Lab 11: Refactoring for Production](#lab-11-refactoring-for-production)
 - [Lab 12: Retrieval-Augmented Generation (RAG)](#lab-12-retrieval-augmented-generation-rag)
 - [Lab 13: Redis Vector Store for RAG](#lab-13-redis-vector-store-for-rag)
@@ -37,7 +37,16 @@ This series of labs will guide you through building a Spring AI application that
    export ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional, for Claude exercises
    ```
 
-3. Check that the project builds successfully:
+3. **Model Configuration Note**: This course uses `gpt-5-nano` (OpenAI) and `claude-opus-4-1` (Anthropic). These models have specific requirements:
+   - `gpt-5-nano` only supports `temperature=1.0` (the default value)
+   - When using `ChatClient.builder()`, explicitly set temperature if needed:
+     ```java
+     ChatClient chatClient = ChatClient.builder(model)
+         .defaultOptions(ChatOptions.builder().temperature(1.0).build())
+         .build();
+     ```
+
+4. Check that the project builds successfully:
    ```bash
    ./gradlew build
    ```
@@ -374,7 +383,14 @@ First, create a template file at `src/main/resources/movie_prompt.st`:
 Tell me the names of {number} movies whose soundtrack was composed by {composer}
 ```
 
-Then create a test that loads this template:
+Next, autowire the template resource into your test class using the `@Value` annotation:
+
+```java
+@Value("classpath:movie_prompt.st")
+private Resource promptTemplate;
+```
+
+Then create a test that uses this template:
 
 ```java
 @Test
@@ -417,15 +433,14 @@ void defaultRequestsAreStateless() {
 
     System.out.println("Initial query:");
     String answer1 = chatClient.prompt()
-            .user(u -> u
-                    .text("My name is Inigo Montoya. You killed my father. Prepare to die."))
+            .user("My name is Inigo Montoya. You killed my father. Prepare to die.")
             .call()
             .content();
     System.out.println(answer1);
 
     System.out.println("Second query:");
     String answer2 = chatClient.prompt()
-            .user(u -> u.text("Who am I?"))
+            .user("Who am I?")
             .call()
             .content();
     System.out.println(answer2);
@@ -462,8 +477,7 @@ void requestsWithMemory() {
     System.out.println("Initial query with memory:");
     String answer1 = chatClient.prompt()
             .advisors(MessageChatMemoryAdvisor.builder(memory).build())
-            .user(u -> u
-                    .text("My name is Inigo Montoya. You killed my father. Prepare to die."))
+            .user("My name is Inigo Montoya. You killed my father. Prepare to die.")
             .call()
             .content();
     System.out.println(answer1);
@@ -471,7 +485,7 @@ void requestsWithMemory() {
     System.out.println("Second query with memory:");
     String answer2 = chatClient.prompt()
             .advisors(MessageChatMemoryAdvisor.builder(memory).build())
-            .user(u -> u.text("Who am I?"))
+            .user("Who am I?")
             .call()
             .content();
     System.out.println(answer2);
@@ -636,9 +650,72 @@ You can change the file name and format as needed. For DALL-E 3 model, you can s
 
 [↑ Back to table of contents](#table-of-contents)
 
-## Lab 9: AI Tools
+## Lab 9: Audio Capabilities
 
-### 9.1 Create a Tool
+### 9.1 Text-to-Speech (TTS)
+
+Create a test that generates speech from text. Note that Spring AI 1.1.0 introduced a new portable TTS API using `TextToSpeechPrompt` and `TextToSpeechResponse` from `org.springframework.ai.audio.tts`:
+
+```java
+@Test
+void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
+    String text = "Welcome to Spring AI, a powerful framework for integrating AI into your Spring applications.";
+
+    OpenAiAudioSpeechOptions options = OpenAiAudioSpeechOptions.builder()
+            .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
+            .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
+            .speed(1.0)  // Note: Changed from Float to Double in 1.1.0
+            .build();
+
+    TextToSpeechPrompt prompt = new TextToSpeechPrompt(text, options);
+    TextToSpeechResponse response = speechModel.call(prompt);
+    assertNotNull(response);
+
+    // Optionally save to file for verification
+    try {
+        Files.write(Path.of("generated_audio.mp3"), response.getResult().getOutput());
+        System.out.println("Audio file generated and saved as 'generated_audio.mp3'");
+    } catch (IOException e) {
+        throw new RuntimeException(e);
+    }
+}
+```
+
+### 9.2 Speech-to-Text (Transcription)
+
+First, autowire in the `src/main/resources/audio/tftjs.mp3`:
+
+```java
+@Value("classpath:audio/tftjs.mp3")
+private Resource sampleAudioResource;
+```
+
+Then create a test that transcribes speech to text:
+
+```java
+@Test
+void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
+
+    // Optional configuration
+    OpenAiAudioTranscriptionOptions options = OpenAiAudioTranscriptionOptions.builder()
+            .language("en")
+            .prompt("Transcribe this audio file.")
+            .temperature(0.0f)
+            .responseFormat(OpenAiAudioApi.TranscriptResponseFormat.TEXT)
+            .build();
+
+    AudioTranscriptionPrompt prompt = new AudioTranscriptionPrompt(sampleAudioResource, options);
+    AudioTranscriptionResponse response = transcriptionModel.call(prompt);
+    assertNotNull(response);
+    System.out.println("Transcription: " + response.getResult().getOutput());
+}
+```
+
+[↑ Back to table of contents](#table-of-contents)
+
+## Lab 10: AI Tools
+
+### 10.1 Create a Tool
 
 Create a DateTimeTools class that the AI can use:
 
@@ -660,7 +737,7 @@ class DateTimeTools {
 }
 ```
 
-### 9.2 Use the Tools
+### 10.2 Use the Tools
 
 Create a test that uses the annotated methods:
 
@@ -682,69 +759,6 @@ void useDateTimeTools() {
             .call()
             .content();
     System.out.println(alarmTime);
-}
-```
-
-[↑ Back to table of contents](#table-of-contents)
-
-## Lab 10: Audio Capabilities
-
-### 10.1 Text-to-Speech (TTS)
-
-Create a test that generates speech from text:
-
-```java
-@Test
-void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
-    String text = "Welcome to Spring AI, a powerful framework for integrating AI into your Spring applications.";
-    
-    OpenAiAudioSpeechOptions options = OpenAiAudioSpeechOptions.builder()
-            .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
-            .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
-            .speed(1.0f)
-            .build();
-    
-    SpeechPrompt prompt = new SpeechPrompt(text, options);
-    SpeechResponse response = speechModel.call(prompt);
-    assertNotNull(response);
-    
-    // Optionally save to file for verification
-    try {
-        Files.write(Path.of("generated_audio.mp3"), response.getResult().getOutput());
-        System.out.println("Audio file generated and saved as 'generated_audio.mp3'");
-    } catch (IOException e) {
-        throw new RuntimeException(e);
-    }
-}
-```
-
-### 10.2 Speech-to-Text (Transcription)
-
-First, autowire in the `src/main/resources/audio/tftjs.mp3`:
-
-```java
-@Value("classpath:audio/tftjs.mp3")
-private Resource sampleAudioResource;
-```
-
-Then create a test that transcribes speech to text:
-
-```java
-@Test
-void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
-    
-    // Optional configuration
-    OpenAiAudioTranscriptionOptions options = OpenAiAudioTranscriptionOptions.builder()
-            .language("en")
-            .prompt("Transcribe this audio file.")
-            .temperature(0.0f)
-            .responseFormat(OpenAiAudioApi.TranscriptResponseFormat.TEXT)
-            .build();
-
-    AudioTranscriptionPrompt prompt = new AudioTranscriptionPrompt(sampleAudioResource, options);
-    AudioTranscriptionResponse response = transcriptionModel.call(prompt);
-    assertNotNull(response);
-    System.out.println("Transcription: " + response.getResult().getOutput());
 }
 ```
 
@@ -1429,7 +1443,24 @@ public class AppConfig {
     VectorStore simpleVectorStore(EmbeddingModel embeddingModel) {
         return SimpleVectorStore.builder(embeddingModel).build();
     }
+
+    @Bean
+    @Profile("redis")
+    VectorStore redisVectorStore(EmbeddingModel embeddingModel) {
+        // Spring AI 1.1.0 requires JedisPooled as first parameter
+        return RedisVectorStore.builder(new JedisPooled("localhost", 6379), embeddingModel)
+                .indexName("spring-ai-index")
+                .initializeSchema(true)
+                .build();
+    }
 }
+```
+
+**Important Note for Spring AI 1.1.0:** The `RedisVectorStore` builder now requires a `JedisPooled` instance as the first parameter. You'll need to add the import:
+
+```java
+import org.springframework.ai.vectorstore.redis.RedisVectorStore;
+import redis.clients.jedis.JedisPooled;
 ```
 
 The key changes are:
@@ -1519,29 +1550,30 @@ spring.ai.mcp.client.enabled=true
 spring.ai.mcp.client.name=training-mcp-client
 spring.ai.mcp.client.version=1.0.0
 
-# Configure STDIO connection to a file system MCP server
-spring.ai.mcp.client.stdio.connections.filesystem.command=npx
-spring.ai.mcp.client.stdio.connections.filesystem.args=-y,@modelcontextprotocol/server-filesystem,/tmp
+# Configure STDIO connection to Context7 MCP server for library documentation
+# Context7 provides up-to-date documentation for libraries and frameworks
+spring.ai.mcp.client.stdio.connections.context7.command=npx
+spring.ai.mcp.client.stdio.connections.context7.args=-y,@upstash/context7-mcp@latest
 ```
 
 ### 14.4 Using MCP Tools in Your Application
 
-Create a test class to demonstrate MCP client usage:
+Create a test class to demonstrate MCP client usage with Context7:
 
 ```java
 @SpringBootTest
 @ActiveProfiles("mcp")
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 public class McpClientTests {
-    
+
     @Autowired
     private ChatModel chatModel;  // Uses primary ChatModel (OpenAI)
-    
+
     @Autowired(required = false)
     private List<ToolCallback> mcpTools;  // Auto-discovered MCP tools
-    
+
     private ChatClient chatClient;
-    
+
     @BeforeEach
     void setUp() {
         // Create a chat client with MCP tools if available
@@ -1553,7 +1585,7 @@ public class McpClientTests {
             chatClient = ChatClient.builder(chatModel).build();
         }
     }
-    
+
     @Test
     void listAvailableTools() {
         if (mcpTools != null) {
@@ -1561,65 +1593,56 @@ public class McpClientTests {
             mcpTools.forEach(tool -> {
                 System.out.println("- Tool callback available: " + tool.getClass().getSimpleName());
             });
-            
+
             assertFalse(mcpTools.isEmpty(), "Should have discovered MCP tools when servers are configured");
         } else {
             System.out.println("No MCP tools discovered. This is expected if no MCP servers are configured.");
         }
     }
-    
+
     @Test
-    void useFileSystemTools() {
+    void lookupLibraryDocumentation() {
         if (mcpTools == null || mcpTools.isEmpty()) {
-            System.out.println("Skipping filesystem test - no MCP tools available");
+            System.out.println("Skipping Context7 test - no MCP tools available");
             return;
         }
-        
+
         try {
-            // Ask about files in the configured directory
+            // Use Context7 to look up Spring AI documentation
             String response = chatClient.prompt()
-                    .user("What files are in the /tmp directory? If you can't access it, just tell me what tools you have available.")
+                    .user("Using Context7, find documentation about ChatClient in Spring AI. " +
+                          "What are the main methods available?")
                     .call()
                     .content();
-            
-            System.out.println("Filesystem response: " + response);
+
+            System.out.println("Context7 documentation response: " + response);
             assertNotNull(response);
             assertFalse(response.isEmpty());
         } catch (Exception e) {
-            System.out.println("Filesystem test failed (this is expected if MCP server is not running): " + e.getMessage());
+            System.out.println("Context7 test failed: " + e.getMessage());
         }
     }
-    
+
     @Test
-    void createAndReadFile() {
+    void getFrameworkExamples() {
         if (mcpTools == null || mcpTools.isEmpty()) {
-            System.out.println("Skipping file creation test - no MCP tools available");
+            System.out.println("Skipping Context7 example test - no MCP tools available");
             return;
         }
-        
+
         try {
-            // Create a test file
-            String createResponse = chatClient.prompt()
-                    .user("Create a file called spring-ai-test.txt in /tmp with the content 'Hello from Spring AI MCP!'")
+            // Ask for code examples from documentation
+            String response = chatClient.prompt()
+                    .user("Using Context7, show me examples of how to use prompt templates " +
+                          "in Spring AI. Include any code snippets from the documentation.")
                     .call()
                     .content();
-            
-            System.out.println("Create response: " + createResponse);
-            
-            // Try to read it back
-            String readResponse = chatClient.prompt()
-                    .user("What are the contents of /tmp/spring-ai-test.txt?")
-                    .call()
-                    .content();
-            
-            System.out.println("Read response: " + readResponse);
-            
-            // Basic validation
-            assertNotNull(createResponse);
-            assertNotNull(readResponse);
-            
+
+            System.out.println("Context7 examples response: " + response);
+            assertNotNull(response);
+            assertFalse(response.isEmpty());
         } catch (Exception e) {
-            System.out.println("File creation/read test failed (expected if MCP server not configured): " + e.getMessage());
+            System.out.println("Context7 examples test failed: " + e.getMessage());
         }
     }
 }
@@ -1627,16 +1650,56 @@ public class McpClientTests {
 
 ### 14.5 Connecting to Multiple MCP Servers
 
-You can connect to multiple MCP servers simultaneously. Update your configuration:
+You can connect to multiple MCP servers simultaneously. This example configures both Context7 for library documentation and Tavily for AI-optimized web search:
 
 ```properties
-# File system server
-spring.ai.mcp.client.stdio.connections.filesystem.command=npx
-spring.ai.mcp.client.stdio.connections.filesystem.args=-y,@modelcontextprotocol/server-filesystem,/tmp
+# Context7 server for library documentation lookup
+spring.ai.mcp.client.stdio.connections.context7.command=npx
+spring.ai.mcp.client.stdio.connections.context7.args=-y,@upstash/context7-mcp@latest
 
-# Brave search server (requires BRAVE_API_KEY environment variable)
-spring.ai.mcp.client.stdio.connections.brave.command=npx
-spring.ai.mcp.client.stdio.connections.brave.args=-y,@modelcontextprotocol/server-brave-search
+# Tavily search server (requires TAVILY_API_KEY environment variable)
+# Tavily provides AI-optimized search results, ideal for RAG and AI agents
+spring.ai.mcp.client.stdio.connections.tavily.command=npx
+spring.ai.mcp.client.stdio.connections.tavily.args=-y,tavily-mcp@latest
+```
+
+To use Tavily, you'll need to set the `TAVILY_API_KEY` environment variable. You can get a free API key at https://tavily.com.
+
+Here's a test that demonstrates using both servers together:
+
+```java
+@Test
+void combineDocumentationAndWebSearch() {
+    if (mcpTools == null || mcpTools.isEmpty()) {
+        System.out.println("Skipping combined test - no MCP tools available");
+        return;
+    }
+
+    try {
+        // First, get documentation context
+        String docsResponse = chatClient.prompt()
+                .user("Using Context7, what is the recommended way to implement " +
+                      "RAG (Retrieval-Augmented Generation) in Spring AI?")
+                .call()
+                .content();
+
+        System.out.println("Documentation response: " + docsResponse);
+
+        // Then, search for recent community discussions or updates
+        String searchResponse = chatClient.prompt()
+                .user("Using Tavily, search for recent blog posts or tutorials about " +
+                      "Spring AI RAG implementation best practices from 2024-2025.")
+                .call()
+                .content();
+
+        System.out.println("Web search response: " + searchResponse);
+
+        assertNotNull(docsResponse);
+        assertNotNull(searchResponse);
+    } catch (Exception e) {
+        System.out.println("Combined test failed: " + e.getMessage());
+    }
+}
 ```
 
 ### 14.6 Using SSE Transport
@@ -1677,19 +1740,25 @@ public class McpClientConfig {
 }
 ```
 
-### 14.8 Exercise: Weather MCP Client
+### 14.8 Exercise: Research Assistant
 
-Create a test that connects to a weather MCP server and queries weather information:
+Create a test that combines Context7 and Tavily to build a research assistant that can answer questions using both official documentation and current web content:
 
 ```java
 @Test
-void queryWeatherInfo() {
-    // TODO: Configure connection to a weather MCP server
-    // TODO: Use the discovered tools to query current weather
-    // TODO: Ask for a weather forecast
-    // Hint: You might need to mock or create a simple weather server first
+void researchAssistant() {
+    // TODO: Create a prompt that asks about a Spring AI feature
+    // TODO: First use Context7 to get official documentation
+    // TODO: Then use Tavily to find real-world examples and discussions
+    // TODO: Combine the results into a comprehensive answer
+
+    // Example question to research:
+    // "How do I implement function calling (tools) in Spring AI,
+    //  and what are some real-world use cases?"
 }
 ```
+
+**Bonus Challenge**: Create a service class that abstracts the research pattern, automatically querying both documentation and web sources for any given topic.
 
 [↑ Back to table of contents](#table-of-contents)
 
@@ -2055,8 +2124,8 @@ Congratulations! You've completed a comprehensive tour of Spring AI's capabiliti
 - Maintain conversation state with chat memory
 - Work with vision capabilities for image analysis
 - Generate images using AI models
-- Extend AI capabilities with custom tools
 - Process audio with text-to-speech and speech-to-text
+- Extend AI capabilities with custom tools
 - Enhance AI responses with external content using prompt stuffing
 - Build a Retrieval-Augmented Generation (RAG) system for accurate, grounded responses
 - Use Redis as a persistent vector store for production RAG applications
