@@ -46,7 +46,15 @@ This series of labs will guide you through building a Spring AI application that
          .build();
      ```
 
-4. Check that the project builds successfully:
+4. Configure Spring AI in `src/main/resources/application.properties`:
+   ```properties
+   # OpenAI Configuration
+   spring.ai.openai.api-key=${OPENAI_API_KEY}
+   spring.ai.openai.chat.options.model=gpt-5-nano
+   spring.ai.openai.chat.options.temperature=1.0
+   ```
+
+5. Check that the project builds successfully:
    ```bash
    ./gradlew build
    ```
