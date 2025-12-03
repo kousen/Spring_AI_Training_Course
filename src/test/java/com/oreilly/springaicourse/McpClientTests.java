@@ -16,14 +16,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test class for MCP Client functionality (Lab 14).
- *
+ * <p>
  * These tests demonstrate how to use Spring AI's MCP client to connect
  * to external MCP servers and use their tools.
- *
+ * <p>
  * This lab uses:
- * - Context7: For library documentation lookup (https://github.com/upstash/context7)
+ * - Context7: For library documentation lookup (<a href="https://github.com/upstash/context7">...</a>)
  * - Tavily: For AI-optimized web search (requires TAVILY_API_KEY)
- *
+ * <p>
  * Note: Some tests require external MCP servers to be running or available.
  * Enable the 'mcp' profile to activate MCP client configuration.
  */
@@ -104,7 +104,7 @@ public class McpClientTests {
     /**
      * This test demonstrates using Context7 to look up library documentation.
      * Context7 provides up-to-date documentation for libraries and frameworks.
-     *
+     * <p>
      * To enable this test:
      * 1. Install npx: npm install -g npx
      * 2. Configure Context7 server in application-mcp.properties (enabled by default)
