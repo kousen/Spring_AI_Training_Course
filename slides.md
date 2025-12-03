@@ -942,20 +942,29 @@ MCP enables AI to securely access external tools and data sources
 
 # Lab 14: MCP Client
 
-```java {1-8|10-14}
-@Service
-@Profile("mcp")
-public class McpClientService {
-    private final ChatClient chatClient;
-    
-    public McpClientService(ChatClient.Builder builder) {
-        // Spring AI auto-discovers MCP servers from config
-        this.chatClient = builder.build();
-    }
-    
-    public String executeWithTools(String request) {
-        return chatClient.prompt(request).call().content();
-        // AI can now use filesystem, search, etc.
+```java {1-8|10-18|20-24}
+@SpringBootTest
+@ActiveProfiles("mcp")
+public class McpClientTests {
+    @Autowired
+    private ChatModel chatModel;
+
+    @Autowired(required = false)
+    private ToolCallbackProvider toolCallbackProvider;  // MCP tool provider
+
+    private ChatClient chatClient;
+    private ToolCallback[] mcpTools;
+
+    @BeforeEach
+    void setUp() {
+        // Extract tools from the provider
+        if (toolCallbackProvider != null) {
+            mcpTools = toolCallbackProvider.getToolCallbacks();
+        }
+        // Build ChatClient with discovered tools
+        chatClient = ChatClient.builder(chatModel)
+            .defaultToolCallbacks(mcpTools)
+            .build();
     }
 }
 ```
@@ -964,23 +973,22 @@ public class McpClientService {
 
 # MCP Client: Configuration
 
-**Configuration** (`mcp-servers-config.json`):
-```json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx", 
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
-    },
-    "search": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-brave-search"]
-    }
-  }
-}
+**Configuration** (`application-mcp.properties`):
+```properties
+# Enable MCP client
+spring.ai.mcp.client.enabled=true
+spring.ai.mcp.client.toolcallback.enabled=true
+
+# Context7 - Library documentation lookup
+spring.ai.mcp.client.stdio.connections.context7.command=npx
+spring.ai.mcp.client.stdio.connections.context7.args=-y,@upstash/context7-mcp@latest
+
+# Tavily - AI-optimized web search (requires TAVILY_API_KEY)
+spring.ai.mcp.client.stdio.connections.tavily.command=npx
+spring.ai.mcp.client.stdio.connections.tavily.args=-y,tavily-mcp@latest
 ```
 
-**Result**: AI can access external tools through standardized protocol
+**Result**: 6 tools discovered - 2 from Context7, 4 from Tavily!
 
 ---
 
