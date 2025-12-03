@@ -217,16 +217,18 @@ public class McpClientTests {
 
         try {
             // Research question about Spring AI tools/function calling
-            String question = "How do I implement function calling (tools) in Spring AI, " +
-                              "and what are some real-world use cases?";
+            String question = """
+                    How do I implement function calling (tools) in Spring AI,
+                    and what are some real-world use cases?""";
 
             System.out.println("Research question: " + question);
 
             // Step 1: Get official documentation via Context7
             String docsResponse = chatClient.prompt()
-                    .user("Using Context7, find documentation about implementing tools " +
-                          "(function calling) in Spring AI. Include the @Tool annotation usage " +
-                          "and how to register tools with ChatClient.")
+                    .user("""
+                            Using Context7, find documentation about implementing tools
+                            (function calling) in Spring AI. Include the @Tool annotation usage
+                            and how to register tools with ChatClient.""")
                     .call()
                     .content();
 
@@ -235,9 +237,10 @@ public class McpClientTests {
 
             // Step 2: Search for real-world examples via Tavily
             String webResponse = chatClient.prompt()
-                    .user("Using Tavily, search for real-world examples and tutorials about " +
-                          "Spring AI function calling and tools. Look for blog posts, GitHub " +
-                          "examples, or community discussions from 2024-2025.")
+                    .user("""
+                            Using Tavily, search for real-world examples and tutorials about
+                            Spring AI function calling and tools. Look for blog posts, GitHub
+                            examples, or community discussions from 2024-2025.""")
                     .call()
                     .content();
 
@@ -246,10 +249,13 @@ public class McpClientTests {
 
             // Step 3: Synthesize the results
             String synthesizedAnswer = chatClient.prompt()
-                    .user("Based on the documentation and examples you found, provide a " +
-                          "comprehensive answer to: " + question + "\n\n" +
-                          "Include: 1) Basic implementation steps, 2) Best practices, " +
-                          "3) Real-world use cases, 4) Common pitfalls to avoid.")
+                    .user("""
+                    Based on the documentation and examples you found, provide
+                    a comprehensive answer to: %s
+                    
+                    Include: 1) Basic implementation
+                    steps, 2) Best practices, 3) Real-world use cases, 4) Common
+                    pitfalls to avoid.""".formatted(question))
                     .call()
                     .content();
 
