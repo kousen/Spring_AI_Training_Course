@@ -1578,14 +1578,20 @@ public class McpClientTests {
     private ChatModel chatModel;  // Uses primary ChatModel (OpenAI)
 
     @Autowired(required = false)
-    private List<ToolCallback> mcpTools;  // Auto-discovered MCP tools
+    private ToolCallbackProvider toolCallbackProvider;  // MCP tool provider
 
     private ChatClient chatClient;
+    private ToolCallback[] mcpTools;  // Tools extracted from provider
 
     @BeforeEach
     void setUp() {
+        // Extract tools from the provider
+        if (toolCallbackProvider != null) {
+            mcpTools = toolCallbackProvider.getToolCallbacks();
+        }
+
         // Create a chat client with MCP tools if available
-        if (mcpTools != null && !mcpTools.isEmpty()) {
+        if (mcpTools != null && mcpTools.length > 0) {
             chatClient = ChatClient.builder(chatModel)
                     .defaultToolCallbacks(mcpTools)
                     .build();
@@ -1596,13 +1602,14 @@ public class McpClientTests {
 
     @Test
     void listAvailableTools() {
-        if (mcpTools != null) {
-            System.out.println("Available MCP tools: " + mcpTools.size());
-            mcpTools.forEach(tool -> {
-                System.out.println("- Tool callback available: " + tool.getClass().getSimpleName());
-            });
+        if (mcpTools != null && mcpTools.length > 0) {
+            System.out.println("Available MCP tools: " + mcpTools.length);
+            for (ToolCallback tool : mcpTools) {
+                System.out.println("- " + tool.getToolDefinition().name() + ": " +
+                                   tool.getToolDefinition().description());
+            }
 
-            assertFalse(mcpTools.isEmpty(), "Should have discovered MCP tools when servers are configured");
+            assertTrue(mcpTools.length > 0, "Should have discovered MCP tools when servers are configured");
         } else {
             System.out.println("No MCP tools discovered. This is expected if no MCP servers are configured.");
         }
@@ -1610,7 +1617,7 @@ public class McpClientTests {
 
     @Test
     void lookupLibraryDocumentation() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping Context7 test - no MCP tools available");
             return;
         }
@@ -1633,7 +1640,7 @@ public class McpClientTests {
 
     @Test
     void getFrameworkExamples() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping Context7 example test - no MCP tools available");
             return;
         }
@@ -1655,6 +1662,8 @@ public class McpClientTests {
     }
 }
 ```
+
+**Important**: Spring AI's MCP client doesn't expose tools as a `List<ToolCallback>` bean directly. Instead, it provides a `ToolCallbackProvider` bean. You must call `getToolCallbacks()` on this provider to retrieve the actual tool callbacks.
 
 ### 14.5 Connecting to Multiple MCP Servers
 

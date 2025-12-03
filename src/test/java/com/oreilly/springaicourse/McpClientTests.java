@@ -7,24 +7,23 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test class for MCP Client functionality (Lab 14).
- *
+ * <p>
  * These tests demonstrate how to use Spring AI's MCP client to connect
  * to external MCP servers and use their tools.
- *
+ * <p>
  * This lab uses:
- * - Context7: For library documentation lookup (https://github.com/upstash/context7)
+ * - Context7: For library documentation lookup (<a href="https://github.com/upstash/context7">...</a>)
  * - Tavily: For AI-optimized web search (requires TAVILY_API_KEY)
- *
+ * <p>
  * Note: Some tests require external MCP servers to be running or available.
  * Enable the 'mcp' profile to activate MCP client configuration.
  */
@@ -37,17 +36,23 @@ public class McpClientTests {
     private OpenAiChatModel chatModel;
 
     @Autowired(required = false)
-    private List<ToolCallback> mcpTools;  // Auto-discovered MCP tools
+    private ToolCallbackProvider toolCallbackProvider;  // MCP tool provider
 
     private ChatClient chatClient;
+    private ToolCallback[] mcpTools;  // Tools extracted from provider
 
     @BeforeEach
     void setUp() {
+        // Extract tools from the provider
+        if (toolCallbackProvider != null) {
+            mcpTools = toolCallbackProvider.getToolCallbacks();
+        }
+
         // Create a chat client with the specified model and MCP tools if available
         // Set temperature to 1.0 as required by gpt-5-nano
         ChatOptions chatOptions = ChatOptions.builder().temperature(1.0).build();
 
-        if (mcpTools != null && !mcpTools.isEmpty()) {
+        if (mcpTools != null && mcpTools.length > 0) {
             chatClient = ChatClient.builder(chatModel)
                     .defaultOptions(chatOptions)
                     .defaultToolCallbacks(mcpTools)
@@ -68,15 +73,17 @@ public class McpClientTests {
 
     @Test
     void listAvailableTools() {
-        if (mcpTools != null) {
-            System.out.println("Available MCP tools: " + mcpTools.size());
-            mcpTools.forEach(tool -> {
-                System.out.println("- Tool callback available: " + tool.getClass().getSimpleName());
-            });
+        if (mcpTools != null && mcpTools.length > 0) {
+            System.out.println("Available MCP tools: " + mcpTools.length);
+            for (ToolCallback tool : mcpTools) {
+                System.out.println("- " + tool.getToolDefinition().name() + ": " +
+                                   tool.getToolDefinition().description());
+            }
 
-            assertFalse(mcpTools.isEmpty(), "Should have discovered MCP tools when servers are configured");
+            assertTrue(mcpTools.length > 0, "Should have discovered MCP tools when servers are configured");
         } else {
             System.out.println("No MCP tools discovered. This is expected if no MCP servers are configured.");
+            System.out.println("ToolCallbackProvider present: " + (toolCallbackProvider != null));
         }
     }
 
@@ -97,14 +104,14 @@ public class McpClientTests {
     /**
      * This test demonstrates using Context7 to look up library documentation.
      * Context7 provides up-to-date documentation for libraries and frameworks.
-     *
+     * <p>
      * To enable this test:
      * 1. Install npx: npm install -g npx
      * 2. Configure Context7 server in application-mcp.properties (enabled by default)
      */
     @Test
     void lookupLibraryDocumentation() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping Context7 test - no MCP tools available");
             return;
         }
@@ -130,7 +137,7 @@ public class McpClientTests {
      */
     @Test
     void getFrameworkExamples() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping Context7 example test - no MCP tools available");
             return;
         }
@@ -157,7 +164,7 @@ public class McpClientTests {
      */
     @Test
     void combineDocumentationAndWebSearch() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping combined test - no MCP tools available");
             return;
         }
@@ -194,7 +201,7 @@ public class McpClientTests {
      * This is a placeholder for combining Context7 and Tavily to build a research
      * assistant that can answer questions using both official documentation and
      * current web content.
-     *
+     * <p>
      * Students can implement this by:
      * 1. Creating a prompt that asks about a Spring AI feature
      * 2. Using Context7 to get official documentation
@@ -232,7 +239,7 @@ public class McpClientTests {
      */
     @Test
     void multipleServerIntegration() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping multiple server test - no MCP tools available");
             return;
         }
@@ -240,9 +247,10 @@ public class McpClientTests {
         System.out.println("Testing integration with multiple MCP servers:");
         System.out.println("Available tools from all connected servers:");
 
-        mcpTools.forEach(tool -> {
-            System.out.println("  - Tool callback: " + tool.getClass().getSimpleName());
-        });
+        for (ToolCallback tool : mcpTools) {
+            System.out.println("  - " + tool.getToolDefinition().name() + ": " +
+                               tool.getToolDefinition().description());
+        }
 
         // Test a complex query that might use multiple tools
         String complexResponse = chatClient.prompt()
