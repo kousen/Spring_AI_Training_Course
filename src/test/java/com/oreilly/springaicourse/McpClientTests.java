@@ -5,12 +5,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -36,19 +36,31 @@ public class McpClientTests {
     private ChatModel chatModel;
 
     @Autowired(required = false)
-    private List<ToolCallback> mcpTools;  // Auto-discovered MCP tools
+    private ToolCallbackProvider toolCallbackProvider;  // MCP tool provider
 
     private ChatClient chatClient;
+    private ToolCallback[] mcpTools;  // Tools extracted from provider
 
     @BeforeEach
     void setUp() {
+        // Extract tools from the provider
+        if (toolCallbackProvider != null) {
+            mcpTools = toolCallbackProvider.getToolCallbacks();
+        }
+
         // Create a chat client with the specified model and MCP tools if available
-        if (mcpTools != null && !mcpTools.isEmpty()) {
+        // Set temperature to 1.0 as required by gpt-5-nano
+        ChatOptions chatOptions = ChatOptions.builder().temperature(1.0).build();
+
+        if (mcpTools != null && mcpTools.length > 0) {
             chatClient = ChatClient.builder(chatModel)
+                    .defaultOptions(chatOptions)
                     .defaultToolCallbacks(mcpTools)
                     .build();
         } else {
-            chatClient = ChatClient.builder(chatModel).build();
+            chatClient = ChatClient.builder(chatModel)
+                    .defaultOptions(chatOptions)
+                    .build();
         }
     }
 
@@ -61,15 +73,17 @@ public class McpClientTests {
 
     @Test
     void listAvailableTools() {
-        if (mcpTools != null) {
-            System.out.println("Available MCP tools: " + mcpTools.size());
-            mcpTools.forEach(tool -> {
-                System.out.println("- Tool callback available: " + tool.getClass().getSimpleName());
-            });
+        if (mcpTools != null && mcpTools.length > 0) {
+            System.out.println("Available MCP tools: " + mcpTools.length);
+            for (ToolCallback tool : mcpTools) {
+                System.out.println("- " + tool.getToolDefinition().name() + ": " +
+                                   tool.getToolDefinition().description());
+            }
 
-            assertFalse(mcpTools.isEmpty(), "Should have discovered MCP tools when servers are configured");
+            assertTrue(mcpTools.length > 0, "Should have discovered MCP tools when servers are configured");
         } else {
             System.out.println("No MCP tools discovered. This is expected if no MCP servers are configured.");
+            System.out.println("ToolCallbackProvider present: " + (toolCallbackProvider != null));
         }
     }
 
@@ -97,7 +111,7 @@ public class McpClientTests {
      */
     @Test
     void lookupLibraryDocumentation() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping Context7 test - no MCP tools available");
             return;
         }
@@ -123,7 +137,7 @@ public class McpClientTests {
      */
     @Test
     void getFrameworkExamples() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping Context7 example test - no MCP tools available");
             return;
         }
@@ -150,7 +164,7 @@ public class McpClientTests {
      */
     @Test
     void combineDocumentationAndWebSearch() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping combined test - no MCP tools available");
             return;
         }
@@ -189,7 +203,7 @@ public class McpClientTests {
      */
     @Test
     void researchAssistant() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping research assistant test - no MCP tools available");
             // Still test basic functionality
             String response = chatClient.prompt()
@@ -256,7 +270,7 @@ public class McpClientTests {
      */
     @Test
     void multipleServerIntegration() {
-        if (mcpTools == null || mcpTools.isEmpty()) {
+        if (mcpTools == null || mcpTools.length == 0) {
             System.out.println("Skipping multiple server test - no MCP tools available");
             return;
         }
@@ -264,9 +278,10 @@ public class McpClientTests {
         System.out.println("Testing integration with multiple MCP servers:");
         System.out.println("Available tools from all connected servers:");
 
-        mcpTools.forEach(tool -> {
-            System.out.println("  - Tool callback: " + tool.getClass().getSimpleName());
-        });
+        for (ToolCallback tool : mcpTools) {
+            System.out.println("  - " + tool.getToolDefinition().name() + ": " +
+                               tool.getToolDefinition().description());
+        }
 
         // Test a complex query that might use multiple tools
         String complexResponse = chatClient.prompt()
