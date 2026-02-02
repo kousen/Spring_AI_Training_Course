@@ -172,8 +172,8 @@ Spring_AI_Training_Course/
 <v-clicks>
 
 - **Java 17+**
-- **Spring Boot 3.5.4**
-- **Spring AI 1.0.0**
+- **Spring Boot 3.5.9**
+- **Spring AI 1.0.3**
 - **Git** for branch management
 - **Redis** (optional, for advanced RAG)
 
@@ -395,8 +395,8 @@ public class ConversationService {
     
     public ConversationService(ChatClient.Builder builder) {
         this.chatClient = builder
-            .defaultAdvisors(new MessageChatMemoryAdvisor(
-                new InMemoryChatMemory())) // Remembers conversation
+            .defaultAdvisors(MessageChatMemoryAdvisor.builder(
+                new InMemoryChatMemory()).build()) // Remembers conversation
             .build();
     }
     
@@ -488,15 +488,14 @@ public class ImageService {
     public String generateImage(String prompt) {
         ImageResponse response = imageModel.call(
             new ImagePrompt(prompt,
-                ImageOptionsBuilder.builder()
-                    .withModel("dall-e-3")
-                    .withHeight(1024)
-                    .withWidth(1024)
+                OpenAiImageOptions.builder()
+                    .model("gpt-image-1")
                     .build()));
-        
+
+        // gpt-image-1 returns base64-encoded images
         return response.getResult()
             .getOutput()
-            .getUrl();
+            .getB64Json();
     }
 }
 ```
@@ -600,19 +599,20 @@ public class AudioService {
 ```java {1-8|10-16}
 @Service
 public class SpeechService {
-    private final AudioSpeechModel speechModel;
-    
-    public SpeechService(AudioSpeechModel speechModel) {
+    private final OpenAiAudioSpeechModel speechModel;
+
+    public SpeechService(OpenAiAudioSpeechModel speechModel) {
         this.speechModel = speechModel;
     }
-    
+
     public byte[] generateSpeech(String text) {
-        AudioSpeechPrompt prompt = new AudioSpeechPrompt(text,
-            AudioSpeechOptionsBuilder.builder()
-                .withModel("tts-1")
-                .withVoice(AudioSpeechOptions.Voice.ALLOY)
-                .build());
-                
+        var options = OpenAiAudioSpeechOptions.builder()
+                .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
+                .responseFormat(OpenAiAudioApi.SpeechRequest
+                        .AudioResponseFormat.MP3)
+                .speed(1.0f)
+                .build();
+        SpeechPrompt prompt = new SpeechPrompt(text, options);
         return speechModel.call(prompt).getResult().getOutput();
     }
 }
@@ -1460,7 +1460,7 @@ layout: section
 <v-clicks>
 
 - Custom embedding models
-- Multi-agent systems
+- AI agents (see next slides)
 - AI-powered workflows
 - Integration with existing systems
 
@@ -1469,6 +1469,113 @@ layout: section
 </div>
 
 </div>
+
+---
+
+# AI Agents: The Landscape
+
+<div class="grid grid-cols-2 gap-8">
+
+<div>
+
+## Spring AI Foundation
+
+<v-clicks>
+
+- **Tool calling** (`@Tool`) — you already learned this!
+- **Recursive Advisors** — plan-execute-iterate loops
+- **[Effective Agents Guide](https://docs.spring.io/spring-ai/reference/api/effective-agents.html)** — patterns, not a framework
+- Spring AI provides *building blocks*, not a prescriptive agent framework
+
+</v-clicks>
+
+</div>
+
+<div>
+
+## Agent Frameworks & Tools
+
+<v-clicks>
+
+- **[Embabel](https://github.com/embabel/embabel-agent)** — Rod Johnson's agent framework *on top of* Spring AI
+  - `@Agent`, `@Goal`, `@Action` annotations
+  - Goal-Oriented Action Planning (from game AI)
+- **[spring-ai-agent-utils](https://github.com/spring-ai-community/spring-ai-agent-utils)** — Claude Code-style tools for Spring AI (requires 2.0)
+- **[Spring AI Agents/Bench](https://spring.io/blog/2025/10/28/agents-and-benchmarks/)** — benchmarking & evaluation
+
+</v-clicks>
+
+</div>
+
+</div>
+
+<!-- Presenter notes:
+- Students already know @Tool from Lab 9 — agents build on that
+- Embabel is pre-1.0 but actively developed by Spring's creator
+- spring-ai-agent-utils requires Spring AI 2.0, not usable yet on 1.0.3
+- Key insight: Spring AI = Servlet API, Embabel = Spring MVC (higher abstraction)
+-->
+
+---
+
+# Embabel: Agent Pattern in Action
+
+The framework infers execution order from input/output types — like a type-driven workflow
+
+````md magic-move
+
+```java
+// Step 1: Define your domain types
+record UserInput(String content) {}
+record Story(String text) {}
+record ReviewedStory(String text, String feedback, int rating) {}
+```
+
+```java
+// Step 2: Create an agent with @Action methods
+@Agent(description = "Writes and reviews stories")
+public class WriteAndReviewAgent {
+
+    @Action
+    public Story writeStory(UserInput input, OperationContext ctx) {
+        return ctx.ai().withDefaultLlm()
+            .createObject(
+                "Write a story about: " + input.content(),
+                Story.class);
+    }
+
+    @AchievesGoal(description = "Review a story")
+    @Action
+    public ReviewedStory reviewStory(Story story, OperationContext ctx) {
+        return ctx.ai().withDefaultLlm()
+            .createObject(
+                "Review this story: " + story.text(),
+                ReviewedStory.class);
+    }
+}
+```
+
+```java
+// The framework automatically plans: UserInput → Story → ReviewedStory
+// No explicit orchestration needed — types drive the workflow
+//
+// Compare to @Tool (Lab 9): Tools extend what an LLM can do
+// Agents orchestrate multiple LLM calls toward a goal
+```
+
+````
+
+**Demo**: [github.com/kousen/OperaGenerator](https://github.com/kousen/OperaGenerator) (`embabel` branch)
+
+<!-- Presenter notes:
+- Walk through: UserInput flows to writeStory, Story flows to reviewStory
+- @AchievesGoal marks the terminal action
+- Framework uses GOAP (Goal-Oriented Action Planning) to find the path
+- Demo: switch to OperaGenerator repo, embabel branch, and walk through it
+- Also has a langchain4j-agentic branch for comparison
+- Dependency: com.embabel.agent:embabel-agent-starter-shell
+- Compatible with Spring Boot 3.5.9, needs OPENAI_API_KEY
+-->
 
 ---
 

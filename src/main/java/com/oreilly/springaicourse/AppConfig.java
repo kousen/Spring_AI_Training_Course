@@ -1,7 +1,12 @@
 package com.oreilly.springaicourse;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.jsoup.Jsoup;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.reader.jsoup.JsoupDocumentReader;
@@ -15,6 +20,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 
 @Configuration
@@ -64,8 +70,8 @@ public class AppConfig {
 
             // Process URLs
             List.of(FEUD_URL, SPRING_URL).forEach(url -> {
-                // Fetch HTML content using Jsoup
-                List<Document> documents = new JsoupDocumentReader(url).get();
+                // Fetch HTML content using Jsoup directly (with User-Agent to avoid 403 from Wikipedia)
+                List<Document> documents = fetchHtmlDocuments(url);
                 System.out.println("Fetched " + documents.size() + " documents from " + url);
 
                 // Add source metadata to help identify content later
@@ -108,6 +114,21 @@ public class AppConfig {
                 throw new RuntimeException(e);
             }
         };
+    }
+
+    /**
+     * Fetches HTML from a URL using Jsoup's connect API, which sets a proper User-Agent.
+     * This avoids 403 errors from sites like Wikipedia that block bare HttpURLConnection requests.
+     */
+    private List<Document> fetchHtmlDocuments(String url) {
+        try {
+            String html = Jsoup.connect(url).get().html();
+            InputStream inputStream = new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8));
+            Resource resource = new InputStreamResource(inputStream);
+            return new JsoupDocumentReader(resource).get();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to fetch HTML from: " + url, e);
+        }
     }
 
     @Bean
