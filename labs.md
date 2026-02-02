@@ -2,7 +2,7 @@
 
 This series of labs will guide you through building a Spring AI application that uses various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
 
-> **Note:** This project uses Spring Boot 3.5.8 and Spring AI 1.1.0. Spring AI 1.1.0 includes significant API changes, including using builder patterns for constructing advisors like `MessageChatMemoryAdvisor`, and updated vector store implementations.
+> **Note:** This project uses Spring Boot 3.5.9 and Spring AI 1.0.3.
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ This series of labs will guide you through building a Spring AI application that
    export ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional, for Claude exercises
    ```
 
-3. **Model Configuration Note**: This course uses `gpt-5-nano` (OpenAI) and `claude-opus-4-1` (Anthropic). These models have specific requirements:
+3. **Model Configuration Note**: This course uses `gpt-5-nano` (OpenAI) and `claude-sonnet-4-5` (Anthropic). These models have specific requirements:
    - `gpt-5-nano` only supports `temperature=1.0` (the default value)
    - When using `ChatClient.builder()`, explicitly set temperature if needed:
      ```java
@@ -662,7 +662,7 @@ You can change the file name and format as needed. For DALL-E 3 model, you can s
 
 ### 9.1 Text-to-Speech (TTS)
 
-Create a test that generates speech from text. Note that Spring AI 1.1.0 introduced a new portable TTS API using `TextToSpeechPrompt` and `TextToSpeechResponse` from `org.springframework.ai.audio.tts`:
+Create a test that generates speech from text using the OpenAI-specific TTS API:
 
 ```java
 @Test
@@ -672,11 +672,11 @@ void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
     OpenAiAudioSpeechOptions options = OpenAiAudioSpeechOptions.builder()
             .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
             .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
-            .speed(1.0)  // Note: Changed from Float to Double in 1.1.0
+            .speed(1.0f)
             .build();
 
-    TextToSpeechPrompt prompt = new TextToSpeechPrompt(text, options);
-    TextToSpeechResponse response = speechModel.call(prompt);
+    SpeechPrompt prompt = new SpeechPrompt(text, options);
+    SpeechResponse response = speechModel.call(prompt);
     assertNotNull(response);
 
     // Optionally save to file for verification
@@ -1452,24 +1452,10 @@ public class AppConfig {
         return SimpleVectorStore.builder(embeddingModel).build();
     }
 
-    @Bean
-    @Profile("redis")
-    VectorStore redisVectorStore(EmbeddingModel embeddingModel) {
-        // Spring AI 1.1.0 requires JedisPooled as first parameter
-        return RedisVectorStore.builder(new JedisPooled("localhost", 6379), embeddingModel)
-                .indexName("spring-ai-index")
-                .initializeSchema(true)
-                .build();
-    }
 }
 ```
 
-**Important Note for Spring AI 1.1.0:** The `RedisVectorStore` builder now requires a `JedisPooled` instance as the first parameter. You'll need to add the import:
-
-```java
-import org.springframework.ai.vectorstore.redis.RedisVectorStore;
-import redis.clients.jedis.JedisPooled;
-```
+When the `redis` profile is active, Spring Boot auto-configures a `RedisVectorStore` bean using properties from `application-redis.properties`. You don't need to define the bean manually.
 
 The key changes are:
 1. Using the `@Profile("!redis")` annotation to only create the SimpleVectorStore when Redis is not active
