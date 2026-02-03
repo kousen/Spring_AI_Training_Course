@@ -52,7 +52,6 @@ public class AppConfig {
                     // Simple approach: search for something we know should be there
                     System.out.println("Checking if data exists by searching for 'Spring Framework'...");
                     var results = vectorStore.similaritySearch("Spring Framework");
-                    assert results != null;  // Make warning go away -- we know the result list is never null
                     dataExists = !results.isEmpty();  // This is the actual check
                     System.out.println("Search returned " + results.size() + " results");
 
