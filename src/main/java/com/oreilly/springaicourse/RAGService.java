@@ -40,7 +40,7 @@ public class RAGService {
      */
     public ChatResponse queryWithResponse(String question) {
         // Create a QuestionAnswerAdvisor with the vectorStore
-        var questionAnswerAdvisor = new QuestionAnswerAdvisor(vectorStore);
+        var questionAnswerAdvisor = QuestionAnswerAdvisor.builder(vectorStore).build();
 
         // Good to use chat memory when doing RAG
         var chatMemoryAdvisor = MessageChatMemoryAdvisor.builder(memory).build();

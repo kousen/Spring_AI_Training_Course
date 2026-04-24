@@ -3,10 +3,10 @@ package com.oreilly.springaicourse;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
+import org.springframework.ai.audio.tts.TextToSpeechPrompt;
+import org.springframework.ai.audio.tts.TextToSpeechResponse;
 import org.springframework.ai.openai.*;
 import org.springframework.ai.openai.api.OpenAiAudioApi;
-import org.springframework.ai.openai.audio.speech.SpeechPrompt;
-import org.springframework.ai.openai.audio.speech.SpeechResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,11 +34,11 @@ class AudioTests {
         var options = OpenAiAudioSpeechOptions.builder()
                 .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
                 .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
-                .speed(1.0f)
+                .speed(1.0)
                 .build();
         
-        var prompt = new SpeechPrompt(text, options);
-        SpeechResponse response = speechModel.call(prompt);
+        var prompt = new TextToSpeechPrompt(text, options);
+        TextToSpeechResponse response = speechModel.call(prompt);
         assertNotNull(response);
         
         // Optionally save to file for verification

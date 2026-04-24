@@ -16,7 +16,7 @@ This repository contains a complete Spring AI training course with both starter 
 ### Prerequisites
 
 1. **Java 17+**
-2. **Spring Boot 3.5.9** with **Spring AI 1.0.3**
+2. **Spring Boot 3.5.9** with **Spring AI 1.1.4**
 3. **Environment Variables**:
    ```bash
    export OPENAI_API_KEY=your_openai_api_key
@@ -56,8 +56,8 @@ Follow the exercises in [labs.md](labs.md) to build Spring AI applications from 
 6. **Chat Memory** - Conversation context
 7. **Vision Capabilities** - Image analysis
 8. **Image Generation** - AI-created images
-9. **AI Tools** - Function calling
-10. **Audio Processing** - Speech-to-text and text-to-speech
+9. **Audio Processing** - Speech-to-text and text-to-speech
+10. **AI Tools** - Function calling
 11. **Production Refactoring** - Service and controller layers
 12. **Retrieval-Augmented Generation (RAG)** - AI with knowledge base
 13. **Production RAG** - Redis vector store optimization
@@ -70,6 +70,10 @@ Follow the exercises in [labs.md](labs.md) to build Spring AI applications from 
 - **Build incrementally**: Complete one lab before moving to the next
 - **Reference solutions**: Check the `solutions` branch when needed
 - **Hands-on learning**: Learn by implementing, not copying
+
+## Version Policy
+
+This course is pinned to Spring AI 1.1.4 for Spring Boot 3.5.x stability. Spring AI 2.0 is currently available as a milestone release and is not used in the Monday delivery labs.
 
 ## Key Features & Technologies
 

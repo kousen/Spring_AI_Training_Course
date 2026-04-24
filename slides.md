@@ -173,7 +173,7 @@ Spring_AI_Training_Course/
 
 - **Java 17+**
 - **Spring Boot 3.5.9**
-- **Spring AI 1.0.3**
+- **Spring AI 1.1.4**
 - **Git** for branch management
 - **Redis** (optional, for advanced RAG)
 
@@ -508,62 +508,40 @@ public class ImageService {
 
 ---
 
-# Lab 9: AI Tools (Function Calling)
+# Lab 9: Audio Capabilities
 
-````md magic-move
-```java
-// Step 1: Create a tool
-@Component
-public class DateTimeTools {
-    @Tool("Get the current date and time")
-    public String getCurrentDateTime() {
-        return LocalDateTime.now().toString();
-    }
-}
-```
-
-```java
-// Step 2: Register with ChatClient
+```java {1-8|10-16|18-22}
 @Service
-public class ToolEnabledService {
-    private final ChatClient chatClient;
-    
-    public ToolEnabledService(ChatClient.Builder builder, 
-                              DateTimeTools dateTimeTools) {
-        this.chatClient = builder
-            .defaultTools(dateTimeTools)
+public class SpeechService {
+    private final OpenAiAudioSpeechModel speechModel;
+
+    public SpeechService(OpenAiAudioSpeechModel speechModel) {
+        this.speechModel = speechModel;
+    }
+
+    public byte[] generateSpeech(String text) {
+        var options = OpenAiAudioSpeechOptions.builder()
+            .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
+            .responseFormat(OpenAiAudioApi.SpeechRequest
+                .AudioResponseFormat.MP3)
+            .speed(1.0)
             .build();
+
+        var prompt = new TextToSpeechPrompt(text, options);
+        return speechModel.call(prompt).getResult().getOutput();
     }
 }
 ```
 
-```java
-// Step 3: AI automatically calls your tools
-@Test
-void shouldCallTool() {
-    String response = chatClient.prompt(
-        "What time is it right now?")
-        .call()
-        .content();
-    
-    // AI called getCurrentDateTime() automatically!
-    assertThat(response).contains("2024");
-}
-```
-````
+<v-click>
 
-**Result**: AI can execute your Java methods when needed!
+**Output**: High-quality AI-generated speech from text
 
----
-layout: section
----
-
-# Lab 10-11: Audio Processing
-## Speech-to-Text and Text-to-Speech
+</v-click>
 
 ---
 
-# Lab 10: Audio Transcription
+# Lab 9: Speech-to-Text
 
 ```java {1-8|10-16|18-22}
 @Service
@@ -575,12 +553,8 @@ public class AudioService {
     }
     
     public String transcribeAudio(Resource audioFile) {
-        AudioTranscriptionPrompt prompt = 
-            new AudioTranscriptionPrompt(audioFile);
-            
-        AudioTranscriptionResponse response = 
-            transcriptionModel.call(prompt);
-            
+        var prompt = new AudioTranscriptionPrompt(audioFile);
+        var response = transcriptionModel.call(prompt);
         return response.getResult().getOutput();
     }
 }
@@ -593,49 +567,86 @@ public class AudioService {
 </v-click>
 
 ---
+layout: section
+---
 
-# Lab 11: Text-to-Speech
+# Lab 10-11: Application Patterns
+## Tools and Production Refactoring
 
-```java {1-8|10-16}
-@Service
-public class SpeechService {
-    private final OpenAiAudioSpeechModel speechModel;
+---
 
-    public SpeechService(OpenAiAudioSpeechModel speechModel) {
-        this.speechModel = speechModel;
-    }
+# Lab 10: AI Tools (Function Calling)
 
-    public byte[] generateSpeech(String text) {
-        var options = OpenAiAudioSpeechOptions.builder()
-                .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
-                .responseFormat(OpenAiAudioApi.SpeechRequest
-                        .AudioResponseFormat.MP3)
-                .speed(1.0f)
-                .build();
-        SpeechPrompt prompt = new SpeechPrompt(text, options);
-        return speechModel.call(prompt).getResult().getOutput();
+````md magic-move
+```java
+// Step 1: Create a tool
+@Component
+public class DateTimeTools {
+    @Tool(description = "Get the current date and time")
+    public String getCurrentDateTime() {
+        return LocalDateTime.now().toString();
     }
 }
 ```
 
----
-
-# Text-to-Speech: Usage
-
 ```java
-// Generate and save audio
-byte[] audioData = speechService.generateSpeech(
-    "Welcome to Spring AI training!");
-
-// Save to file for playback
-Files.write(Paths.get("welcome.mp3"), audioData);
+// Step 2: Register with ChatClient
+@Service
+public class ToolEnabledService {
+    private final ChatClient chatClient;
+    
+    public ToolEnabledService(ChatModel model) {
+        this.chatClient = ChatClient.create(model);
+    }
+}
 ```
 
-<v-click>
+```java
+// Step 3: AI automatically calls your tools
+@Test
+void shouldCallTool() {
+    String response = chatClient.prompt()
+        .user("What time is it right now?")
+        .tools(new DateTimeTools())
+        .call()
+        .content();
+    
+    // AI called getCurrentDateTime() automatically!
+    assertThat(response).contains("2024");
+}
+```
+````
 
-**Output**: High-quality AI-generated speech from any text
+**Result**: AI can execute your Java methods when needed!
 
-</v-click>
+---
+# Lab 11: Refactoring for Production
+
+```java {1-8|10-18|20-27}
+@Service
+public class FilmographyService {
+    private final ChatClient chatClient;
+
+    public FilmographyService(ChatClient.Builder builder) {
+        this.chatClient = builder.build();
+    }
+
+    public List<ActorFilms> getFilmography(String... actors) {
+        String actorList = String.join(" and ", actors);
+        return chatClient.prompt()
+            .user("Generate 5 movies for " + actorList)
+            .call()
+            .entity(new ParameterizedTypeReference<>() {});
+    }
+}
+
+@RestController
+@RequestMapping("/api/films")
+class FilmographyController {
+    private final FilmographyService service;
+    // constructor and @GetMapping methods
+}
+```
 
 ---
 layout: section
@@ -834,7 +845,7 @@ public class RAGService {
     
     public String askQuestion(String question) {
         return chatClient.prompt()
-            .advisors(new QuestionAnswerAdvisor(vectorStore))
+            .advisors(QuestionAnswerAdvisor.builder(vectorStore).build())
             .user(question)
             .call()
             .content();
@@ -1510,9 +1521,9 @@ layout: section
 </div>
 
 <!-- Presenter notes:
-- Students already know @Tool from Lab 9 — agents build on that
+- Students already know @Tool from Lab 10 — agents build on that
 - Embabel is pre-1.0 but actively developed by Spring's creator
-- spring-ai-agent-utils requires Spring AI 2.0, not usable yet on 1.0.3
+- spring-ai-agent-utils requires Spring AI 2.0, so it is preview material for this 1.1.4 course
 - Key insight: Spring AI = Servlet API, Embabel = Spring MVC (higher abstraction)
 -->
 
@@ -1559,7 +1570,7 @@ public class WriteAndReviewAgent {
 // The framework automatically plans: UserInput → Story → ReviewedStory
 // No explicit orchestration needed — types drive the workflow
 //
-// Compare to @Tool (Lab 9): Tools extend what an LLM can do
+// Compare to @Tool (Lab 10): Tools extend what an LLM can do
 // Agents orchestrate multiple LLM calls toward a goal
 ```
 
