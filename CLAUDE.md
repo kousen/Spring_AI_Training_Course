@@ -15,7 +15,7 @@ This is a **hands-on training course** for learning Spring AI through progressiv
 - **Test classes**: Contain TODO comments guiding students through implementation
 - **Service classes**: Skeleton implementations with TODO instructions
 
-The course demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 1.0.3), covering:
+The course demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 1.1.4), covering:
 
 - Text generation and chat capabilities
 - Structured data extraction  
@@ -286,8 +286,8 @@ The course follows a structured progression documented in `labs.md` with 15 comp
 6. **Memory management** - Conversation context
 7. **Vision capabilities** - Image analysis with AI
 8. **Image generation** - AI-created images
-9. **AI Tools (Function calling)** - Extend AI with custom methods
-10. **Audio transcription** - Speech-to-text processing
+9. **Audio processing** - Speech-to-text and text-to-speech
+10. **AI Tools (Function calling)** - Extend AI with custom methods
 11. **Production refactoring** - Service and controller patterns
 12. **RAG implementation** - Knowledge-augmented AI
 13. **Vector store optimization** - Production-ready RAG with Redis

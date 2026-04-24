@@ -9,8 +9,8 @@ This repository includes comprehensive Spring AI training materials:
 - **`CLAUDE.md`** - Developer guidance and course structure
 
 ## Exported Presentations
-- **`slides-export.pdf`** - PDF version (499KB) - *GitHub compatible*
-- **`slides-export.pptx`** - PowerPoint version (32MB) - *Large file, may not display in GitHub web interface*
+- **`slides-export.pdf`** - PDF version - *GitHub compatible*
+- **PowerPoint export** - Generate with Slidev when needed; large PPTX files may not be tracked on every branch or display in GitHub
 
 ## Assets
 - **`public/images/`** - Presentation images for Slidev
@@ -34,7 +34,7 @@ slidev export slides.md --format pptx
 ```
 
 ## Note on Large Files
-The PPTX export (~32MB) may not be visible in GitHub's web interface due to size, but is included in the repository. If you need to reduce file size, consider:
+PPTX exports can be large and may not be visible in GitHub's web interface. If you need to reduce file size, consider:
 - Using PDF format for distribution (499KB)
 - Re-exporting PPTX with lower image quality
 - Using Git LFS for large presentation files

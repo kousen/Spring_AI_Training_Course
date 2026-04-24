@@ -182,7 +182,7 @@ class OpenAiTests {
         // Decode and save to src/main/resources/output_image.png
     }
 
-    // === Lab 9: AI Tools ===
+    // === Lab 10: AI Tools ===
 
     @Test
     void useDateTimeTools() {

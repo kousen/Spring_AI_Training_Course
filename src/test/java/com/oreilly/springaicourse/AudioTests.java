@@ -27,12 +27,12 @@ class AudioTests {
     @Value("classpath:audio/tftjs.mp3")
     private Resource sampleAudioResource;
 
-    // === Lab 10: Audio Processing ===
+    // === Lab 9: Audio Processing ===
 
     @Test
     void testTextToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) throws IOException {
         // TODO: Implement text-to-speech conversion
-        // 1. Create a TextToSpeechPrompt with text to convert
+        // 1. Create a TextToSpeechPrompt with text and optional OpenAiAudioSpeechOptions
         // 2. Use speechModel.call() to generate audio
         // 3. Save the result to an MP3 file in src/main/resources/
         // 4. Print confirmation message

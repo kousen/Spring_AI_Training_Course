@@ -2,7 +2,7 @@
 
 This series of labs will guide you through building a Spring AI application that uses various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
 
-> **Note:** This project uses Spring Boot 3.5.9 and Spring AI 1.0.3.
+> **Note:** This project uses Spring Boot 3.5.9 and Spring AI 1.1.4. The course intentionally stays on the stable 1.1.x line; Spring AI 2.0 milestone releases are preview material and are not used in these labs.
 
 ## Table of Contents
 
@@ -603,7 +603,7 @@ void imageGenerator(@Autowired OpenAiImageModel imageModel) {
     String prompt = """
             A warrior cat rides a dragon into battle""";
     
-    // Note: As of Spring AI 1.0.0, you must specify a model for image generation
+    // Note: specify the image model explicitly for predictable results
     var imageOptions = OpenAiImageOptions.builder()
             .model("gpt-image-1")
             .build();
@@ -632,7 +632,7 @@ void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOExcep
    String prompt = """
            A warrior cat rides a dragon into battle""";
 
-   // Note: With Spring AI 1.0.0, when using "gpt-image-1" model,
+   // Note: when using the "gpt-image-1" model,
    // the response is automatically base64-encoded and you should not
    // specify responseFormat
    ImageResponse response = imageModel.call(
@@ -662,7 +662,7 @@ You can change the file name and format as needed. For DALL-E 3 model, you can s
 
 ### 9.1 Text-to-Speech (TTS)
 
-Create a test that generates speech from text using the OpenAI-specific TTS API:
+Create a test that generates speech from text using Spring AI's text-to-speech abstraction:
 
 ```java
 @Test
@@ -672,11 +672,11 @@ void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
     OpenAiAudioSpeechOptions options = OpenAiAudioSpeechOptions.builder()
             .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
             .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
-            .speed(1.0f)
+            .speed(1.0)
             .build();
 
-    SpeechPrompt prompt = new SpeechPrompt(text, options);
-    SpeechResponse response = speechModel.call(prompt);
+    TextToSpeechPrompt prompt = new TextToSpeechPrompt(text, options);
+    TextToSpeechResponse response = speechModel.call(prompt);
     assertNotNull(response);
 
     // Optionally save to file for verification
@@ -930,7 +930,7 @@ public class RAGService {
 
     public String query(String question) {
         // Create a QuestionAnswerAdvisor with the vectorStore
-        QuestionAnswerAdvisor advisor = new QuestionAnswerAdvisor(question);
+        QuestionAnswerAdvisor advisor = QuestionAnswerAdvisor.builder(vectorStore).build();
 
         // Use the advisor to handle the RAG workflow
         return chatClient.prompt()
@@ -1002,7 +1002,7 @@ To run your application with RAG enabled, set the active profile:
 
 By using the profile approach, you ensure that the RAG system only loads its knowledge base when explicitly enabled, preventing unnecessary processing during regular application use or other tests.
 
-### 12.5 Using a Persistent Vector Store
+### 12.6 Using a Persistent Vector Store
 
 For long-term persistence and better performance with large documents, you can consider using a persistent vector store like Chroma or PostgreSQL.
 
@@ -1018,11 +1018,11 @@ Each of these options has different setup requirements and performance character
 
 For this lab, we're using the SimpleVectorStore for ease of setup, but in production environments, a persistent vector store would typically be preferred.
 
-### 12.6 Testing RAG Response Quality with RelevancyEvaluator
+### 12.7 Testing RAG Response Quality with RelevancyEvaluator
 
 Spring AI provides a unique feature called `RelevancyEvaluator` that uses AI to evaluate the quality and relevance of RAG responses. This is particularly valuable for validating that your RAG system is working correctly and producing contextually appropriate responses.
 
-#### 12.6.1 Enhance RAGService for Testing
+#### 12.7.1 Enhance RAGService for Testing
 
 First, modify your RAGService to provide access to the full ChatResponse object for testing:
 
@@ -1052,7 +1052,7 @@ public class RAGService {
      */
     public ChatResponse queryWithResponse(String question) {
         // Create a QuestionAnswerAdvisor with the vectorStore
-        var questionAnswerAdvisor = new QuestionAnswerAdvisor(vectorStore);
+        var questionAnswerAdvisor = QuestionAnswerAdvisor.builder(vectorStore).build();
 
         // Good to use chat memory when doing RAG
         var chatMemoryAdvisor = MessageChatMemoryAdvisor.builder(memory).build();
@@ -1067,7 +1067,7 @@ public class RAGService {
 }
 ```
 
-#### 12.6.2 Update RAG Tests with RelevancyEvaluator
+#### 12.7.2 Update RAG Tests with RelevancyEvaluator
 
 Enhance your RAG tests to use Spring AI's semantic evaluation capabilities:
 
@@ -1189,7 +1189,7 @@ import org.springframework.ai.evaluation.EvaluationRequest;
 import org.springframework.ai.evaluation.EvaluationResponse;
 ```
 
-#### 12.6.3 Benefits of Using RelevancyEvaluator
+#### 12.7.3 Benefits of Using RelevancyEvaluator
 
 1. **Semantic Evaluation**: Goes beyond simple null/empty checks to validate actual response quality
 2. **Automated Quality Assurance**: Uses AI to evaluate AI responses, providing consistent evaluation criteria
@@ -1210,7 +1210,7 @@ The RelevancyEvaluator uses the original question, the retrieved document contex
 
 The RAG system you've built can be extended with additional knowledge sources by adding more URLs or document readers to the configuration.
 
-### 12.7 Incorporating PDF Documents into RAG
+### 12.8 Incorporating PDF Documents into RAG
 
 While web content is easily accessible using the JsoupDocumentReader, many valuable information sources exist as PDF documents. Let's extend our RAG system to incorporate PDF documents:
 
@@ -1673,7 +1673,7 @@ Here's a test that demonstrates using both servers together:
 ```java
 @Test
 void combineDocumentationAndWebSearch() {
-    if (mcpTools == null || mcpTools.isEmpty()) {
+    if (mcpTools == null || mcpTools.length == 0) {
         System.out.println("Skipping combined test - no MCP tools available");
         return;
     }

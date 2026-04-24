@@ -45,7 +45,7 @@ public class RAGService {
      */
     public ChatResponse queryWithResponse(String question) {
         // TODO: Implement full RAG workflow
-        // 1. Create QuestionAnswerAdvisor with vectorStore
+        // 1. Create QuestionAnswerAdvisor with QuestionAnswerAdvisor.builder(vectorStore).build()
         // 2. Create MessageChatMemoryAdvisor with memory
         // 3. Use advisors with chatClient to process question
         // 4. Return full ChatResponse

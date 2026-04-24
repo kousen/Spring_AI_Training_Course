@@ -150,7 +150,7 @@ class ClaudeTests {
 
     // Note: Claude API does not support image generation, so Lab 8 tests are omitted
 
-    // === Lab 9: AI Tools ===
+    // === Lab 10: AI Tools ===
 
     @Test
     void useDateTimeTools() {
