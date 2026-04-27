@@ -57,6 +57,8 @@ class OpenAiTests {
     void setUp() {
         // TODO: Initialize ChatClient using ChatClient.create(model)
         // For more advanced features, use ChatClient.builder(model) with advisors
+
+        chatClient = ChatClient.create(model);
     }
 
     // === Lab 1: Basic Chat Interactions ===
@@ -87,6 +89,12 @@ class OpenAiTests {
     void simpleQueryRespondLikeAPirate() {
         // TODO: Add a system message to make the AI respond like a pirate
         // Use .system("You are a helpful assistant that responds like a pirate.")
+        String response = chatClient.prompt()
+                .system("You are a helpful assistant that responds like a pirate.")
+                .user("Why is the sky blue?")
+                .call()
+                .content();
+        System.out.println(response);
     }
 
     @Test
@@ -94,30 +102,92 @@ class OpenAiTests {
         // TODO: Get the full ChatResponse instead of just content
         // Use .call().chatResponse() to access metadata like model and usage info
         // Print model, usage, and response text
+
+        ChatClient chatClient = ChatClient.create(model);
+        ChatResponse chatResponse = chatClient.prompt()
+                .system("You are a helpful assistant that responds like a pirate.")
+                .user("Why is the sky blue?")
+                .call()
+                .chatResponse();
+
+        assertNotNull(chatResponse);
+        ChatResponseMetadata metadata = chatResponse.getMetadata();
+        System.out.println(metadata.getModel());
+        System.out.println(metadata.getUsage());
+        System.out.println(chatResponse.getResult().getOutput().getText());
+    }
+
+    @Test
+    void loggingAdvisorTest() {
+        // Create a chat client from the model with logging advisor
+        ChatClient chatClient = ChatClient.builder(model)
+                .defaultAdvisors(new SimpleLoggerAdvisor())
+                .build();
+
+        // Send a prompt and get the response
+        String response = chatClient.prompt()
+                .user("Explain the concept of recursion in programming")
+                .call()
+                .content();
+
+        System.out.println("Response: " + response);
     }
 
     // === Lab 3: Streaming Responses ===
 
     @Test
     void streamingChatCountDownLatch() throws InterruptedException {
-        // TODO: Implement streaming chat using CountDownLatch
-        // Use .stream().content() to get a Flux<String>
-        // Subscribe with error handling and completion signaling
+        ChatClient chatClient = ChatClient.create(model);
+
+        Flux<String> output = chatClient.prompt()
+                .user("Why is the sky blue?")
+                .stream()
+                .content();
+
+        var latch = new CountDownLatch(1);
+        output.subscribe(
+                System.out::println,
+                e -> {
+                    System.out.println("Error: " + e.getMessage());
+                    latch.countDown();
+                },
+                () -> {
+                    System.out.println("Completed");
+                    latch.countDown();
+                }
+        );
+        latch.await();
     }
 
     @Test
     void streamingChatDoOnNext() {
-        // TODO: Implement streaming using reactive operators
-        // Use doOnNext, doOnError, doOnComplete, and blockLast()
+        ChatClient chatClient = ChatClient.create(model);
+
+        Flux<String> output = chatClient.prompt()
+                .user("Why is the sky blue?")
+                .stream()
+                .content();
+
+        output.doOnNext(System.out::println)
+                .doOnCancel(() -> System.out.println("Cancelled"))
+                .doOnComplete(() -> System.out.println("Completed"))
+                .doOnError(e -> System.out.println("Error: " + e.getMessage()))
+                .blockLast();
     }
 
     // === Lab 4: Structured Data Extraction ===
 
     @Test
     void actorFilmsTest() {
-        // TODO: Extract structured data as ActorFilms record
-        // Use .entity(ActorFilms.class) to get structured response
-        // Print actor name and movies
+        ActorFilms actorFilms = chatClient.prompt()
+                .advisors(new SimpleLoggerAdvisor())
+                .user("Generate the filmography for a random actor.")
+                .call()
+                .entity(ActorFilms.class);
+
+        assertNotNull(actorFilms);
+        System.out.println("Actor: " + actorFilms.actor());
+        actorFilms.movies().forEach(System.out::println);
     }
 
     @Test
