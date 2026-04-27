@@ -5,22 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.anthropic.AnthropicChatModel;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
-import org.springframework.util.MimeTypeUtils;
-import reactor.core.publisher.Flux;
-
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -29,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
 class ClaudeTests {
 
-    @Value("classpath:movie_prompt.st")
+    @Value("classpath:prompts/movie_prompt.st")
     private Resource promptTemplate;
 
     @Value("classpath:bowl_of_fruit.png")

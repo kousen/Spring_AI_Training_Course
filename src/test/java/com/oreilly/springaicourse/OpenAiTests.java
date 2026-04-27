@@ -4,34 +4,26 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
-import org.springframework.ai.image.Image;
-import org.springframework.ai.image.ImagePrompt;
-import org.springframework.ai.image.ImageResponse;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiImageModel;
-import org.springframework.ai.openai.OpenAiImageOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
-import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SuppressWarnings("unused")
@@ -39,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class OpenAiTests {
 
-    @Value("classpath:movie_prompt.st")
+    @Value("classpath:prompts/movie_prompt.st")
     private Resource promptTemplate;
 
     @Value("classpath:bowl_of_fruit.png")
@@ -55,10 +47,10 @@ class OpenAiTests {
 
     @BeforeEach
     void setUp() {
-        // TODO: Initialize ChatClient using ChatClient.create(model)
-        // For more advanced features, use ChatClient.builder(model) with advisors
-
-        chatClient = ChatClient.create(model);
+        chatClient = ChatClient.builder(model)
+                .defaultAdvisors(
+                        MessageChatMemoryAdvisor.builder(memory).build())
+                .build();
     }
 
     // === Lab 1: Basic Chat Interactions ===
@@ -192,33 +184,70 @@ class OpenAiTests {
 
     @Test
     void listOfActorFilms() {
-        // TODO: Extract a list of ActorFilms using ParameterizedTypeReference
-        // Request filmography for multiple actors (Tom Hanks and Bill Murray)
+        ChatClient chatClient = ChatClient.create(model);
+
+        List<ActorFilms> actorFilms = chatClient.prompt()
+                .user("Generate the filmography of 5 movies for Tom Hanks and Bill Murray.")
+                .call()
+                .entity(new ParameterizedTypeReference<>() {});
+
+        assertNotNull(actorFilms);
+        actorFilms.forEach(actorFilm -> {
+            System.out.println("Actor: " + actorFilm.actor());
+            actorFilm.movies().forEach(System.out::println);
+        });
     }
 
     // === Lab 5: Prompt Templates ===
 
     @Test
     void promptTemplate() {
-        // TODO: Use inline prompt template with parameters
-        // Template: "Tell me the names of 5 movies whose soundtrack was composed by {composer}"
-        // Use .param("composer", "John Williams")
+        String answer = chatClient.prompt()
+                .user(u -> u
+                        .text("Tell me the names of 5 movies whose soundtrack was composed by {composer}")
+                        .param("composer", "Michael Giacchino"))
+                .call()
+                .content();
+
+        System.out.println(answer);
     }
 
     @Test
     void promptTemplateFromResource() {
-        // TODO: Load prompt template from movie_prompt.st resource file
-        // Use .text(promptTemplate) and parameters for number and composer
+        ChatClient chatClient = ChatClient.create(model);
+
+        String answer = chatClient.prompt()
+                .user(u -> u
+                        .text(promptTemplate)
+                        .param("number", "10")
+                        .param("composer", "Michael Giacchino"))
+                .call()
+                .content();
+
+        System.out.println(answer);
     }
 
     // === Lab 6: Chat Memory ===
 
     @Test
-    void requestsAreStateless() {
-        // TODO: Demonstrate stateless requests vs memory-enabled chat
-        // First query: "My name is Inigo Montoya. You killed my father. Prepare to die."
-        // Second query: "Who am I?"
-        // Uncomment MessageChatMemoryAdvisor lines to enable memory
+    void defaultRequestsAreStateless() {
+        System.out.println("Initial query:");
+        String answer1 = chatClient.prompt()
+                .user("My name is Inigo Montoya. You killed my father. Prepare to die.")
+                .call()
+                .content();
+        System.out.println(answer1);
+
+        System.out.println("Second query:");
+        String answer2 = chatClient.prompt()
+                .user("Who am I?")
+                .call()
+                .content();
+        System.out.println(answer2);
+
+        // Verify the model doesn't identify the user as Inigo Montoya
+        assertFalse(answer2.toLowerCase().contains("inigo montoya"),
+                "The model should not remember previous conversations without memory");
     }
 
     // === Lab 7: Vision Capabilities ===
