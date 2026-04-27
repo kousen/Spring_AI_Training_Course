@@ -1,3 +1,6 @@
+import jdk.jfr.internal.JVM.exclude
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     java
     id("org.springframework.boot") version "3.5.9"
@@ -25,6 +28,10 @@ dependencies {
     // Spring AI models
     implementation("org.springframework.ai:spring-ai-starter-model-openai")
     implementation("org.springframework.ai:spring-ai-starter-model-anthropic")
+
+    // JDBC chat memory storage
+    implementation("org.springframework.ai:spring-ai-starter-model-chat-memory-repository-jdbc")
+    runtimeOnly("com.h2database:h2")
 
     // Vector Stores
     implementation("org.springframework.ai:spring-ai-advisors-vector-store")

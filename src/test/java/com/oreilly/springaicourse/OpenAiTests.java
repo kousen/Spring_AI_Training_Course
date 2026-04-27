@@ -3,23 +3,39 @@ package com.oreilly.springaicourse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
+import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
+import org.springframework.ai.audio.tts.TextToSpeechPrompt;
+import org.springframework.ai.audio.tts.TextToSpeechResponse;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
-import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.OpenAiImageModel;
+import org.springframework.ai.image.Image;
+import org.springframework.ai.image.ImagePrompt;
+import org.springframework.ai.image.ImageResponse;
+import org.springframework.ai.openai.*;
+import org.springframework.ai.openai.api.OpenAiAudioApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
+import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
 
+import javax.swing.*;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -34,7 +50,7 @@ class OpenAiTests {
     @Value("classpath:prompts/movie_prompt.st")
     private Resource promptTemplate;
 
-    @Value("classpath:bowl_of_fruit.png")
+    @Value("classpath:issues.png")
     private Resource imageResource;
 
     @Autowired
@@ -43,13 +59,23 @@ class OpenAiTests {
     @Autowired
     private ChatMemory memory;
 
+    @Value("classpath:audio/tftjs.mp3")
+    private Resource sampleAudioResource;
+
+    @Autowired
+    JdbcChatMemoryRepository chatMemoryRepository;
+
     private ChatClient chatClient;
 
     @BeforeEach
     void setUp() {
+        ChatMemory chatMemory = MessageWindowChatMemory.builder()
+                .chatMemoryRepository(chatMemoryRepository)
+                .maxMessages(10)
+                .build();
+
         chatClient = ChatClient.builder(model)
-                .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(memory).build())
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 
@@ -254,40 +280,138 @@ class OpenAiTests {
 
     @Test
     void localVisionTest() {
-        // TODO: Analyze a local image file
-        // Use .media(MimeTypeUtils.IMAGE_PNG, imageResource)
-        // Ask "What do you see on this picture?"
+        String response = chatClient.prompt()
+                .user(u -> u.text(
+                                """
+                                Should we fix the issues identified
+                                by IntelliJ IDEA shown in this image?
+                                """
+                        )
+                        .media(MimeTypeUtils.IMAGE_PNG, imageResource))
+                .call()
+                .content();
+
+        System.out.println(response);
     }
 
     @Test
     void remoteVisionTest() {
-        // TODO: Analyze a remote image from URL
-        // Use URI.create(imageUrl).toURL() with proper exception handling
+        String imageUrl = "https://upload.wikimedia.org/wikipedia/commons/9/9a/Deelerwoud%2C_09-05-2024_%28actm.%29_04.jpg";
+        String response = chatClient.prompt()
+                .user(u -> {
+                    try {
+                        u.text("What do you see on this picture?")
+                                .media(MimeTypeUtils.IMAGE_JPEG, URI.create(imageUrl).toURL());
+                    } catch (MalformedURLException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .call()
+                .content();
+
+        System.out.println(response);
     }
 
     // === Lab 8: Image Generation ===
 
     @Test
-    void imageGenerator(@Autowired OpenAiImageModel imageModel) {
-        // TODO: Generate an image using DALL-E
-        // Create ImagePrompt with description
-        // Use imageModel.call() to generate
+    void imageGenerator(@Autowired OpenAiImageModel imageModel) throws IOException {
+        String prompt = """
+                A highly detailed, photorealistic cinematic scene of an anthropomorphic warrior cat riding a विशाल dragon into battle at dawn. The cat has thick, battle-worn fur (charcoal gray with subtle tabby markings), piercing amber eyes, and a scar across one cheek. He wears intricately crafted medieval armor fitted to his feline form—brushed steel with engraved runes, leather straps, and a flowing crimson cape whipping in the wind.
+                
+                                                The dragon is enormous and lifelike, with textured scales in deep emerald and obsidian tones, glowing molten veins beneath the surface, and wide, powerful wings mid-flap. Its eyes burn with intelligence and fury, and faint smoke curls from its nostrils.
+                
+                                                They soar low over a chaotic battlefield filled with armored soldiers, banners, and distant explosions of fire and dust. The lighting is dramatic: golden sunrise light cutting through heavy smoke and clouds, casting long shadows and illuminating particles in the air. Motion blur subtly enhances the sense of speed and action.
+                
+                                                Shot in ultra-realistic style, 8K resolution, shallow depth of field, cinematic composition, high dynamic range (HDR), realistic textures (fur, metal, scales), volumetric lighting, and physically accurate shadows. Camera angle is slightly below and behind, emphasizing scale and heroism.""";
+
+        // Note: when using the "gpt-image-2" model,
+        // the response is automatically base64-encoded and you should not
+        // specify responseFormat
+        ImageResponse response = imageModel.call(
+                new ImagePrompt(prompt,
+                        OpenAiImageOptions.builder()
+                                .model("gpt-image-2")
+                                .build())
+        );
+
+        Image image = response.getResult().getOutput();
+        assertNotNull(image);
+
+        // Decode the base64 to bytes
+        byte[] imageBytes = Base64.getDecoder().decode(image.getB64Json());
+
+        // Write to file (e.g., PNG)
+        Files.write(Path.of("src/main/resources","output_image.png"), imageBytes);
+        System.out.println("Image saved as output_image.png in src/main/resources");
+
     }
 
     @Test
-    void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOException {
+    void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) {
         // TODO: Generate image and save as base64-encoded file
         // Use gpt-image-1 model for base64 response
         // Decode and save to src/main/resources/output_image.png
+    }
+
+    @Test
+    void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
+        String text = """
+         Olá! Uma boa tarde de Portugal!""";
+
+        OpenAiAudioSpeechOptions options = OpenAiAudioSpeechOptions.builder()
+                .voice(OpenAiAudioApi.SpeechRequest.Voice.FABLE)
+                .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
+                .speed(1.0)
+                .build();
+
+        TextToSpeechPrompt prompt = new TextToSpeechPrompt(text, options);
+        TextToSpeechResponse response = speechModel.call(prompt);
+        assertNotNull(response);
+
+        // Optionally save to file for verification
+        try {
+            Files.write(Path.of("generated_audio.mp3"), response.getResult().getOutput());
+            System.out.println("Audio file generated and saved as 'generated_audio.mp3'");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
+
+        // Optional configuration
+        OpenAiAudioTranscriptionOptions options = OpenAiAudioTranscriptionOptions.builder()
+                .language("en")
+                .prompt("Transcribe this audio file.")
+                .temperature(0.0f)
+                .responseFormat(OpenAiAudioApi.TranscriptResponseFormat.TEXT)
+                .build();
+
+        AudioTranscriptionPrompt prompt = new AudioTranscriptionPrompt(sampleAudioResource, options);
+        AudioTranscriptionResponse response = transcriptionModel.call(prompt);
+        assertNotNull(response);
+        System.out.println("Transcription: " + response.getResult().getOutput());
     }
 
     // === Lab 10: AI Tools ===
 
     @Test
     void useDateTimeTools() {
-        // TODO: Use DateTimeTools for time-related queries
-        // Ask "What day is tomorrow?" and "Set an alarm for ten minutes from now"
-        // Use .tools(new DateTimeTools())
+        String response = chatClient.prompt()
+                .user("What day is tomorrow?")
+                .tools(new DateTimeTools())
+                .call()
+                .content();
+        System.out.println(response);
+
+        String alarmTime = chatClient.prompt()
+                .user("Set an alarm for ten minutes from now")
+                .tools(new DateTimeTools())
+                .call()
+                .content();
+        System.out.println(alarmTime);
     }
 
 }
