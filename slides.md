@@ -172,8 +172,8 @@ Spring_AI_Training_Course/
 <v-clicks>
 
 - **Java 17+**
-- **Spring Boot 3.5.9**
-- **Spring AI 1.1.4**
+- **Spring Boot 3.5.14**
+- **Spring AI 1.1.7**
 - **Git** for branch management
 - **Redis** (optional, for advanced RAG)
 
@@ -388,20 +388,24 @@ Format as JSON with actor name and movies array.
 
 # Lab 6: Chat Memory
 
-```java {1-8|10-16|18-22}
+```java {1-9|11-19|21-25}
 @Service
 public class ConversationService {
+    private static final String CONVERSATION_ID = "course-demo";
     private final ChatClient chatClient;
     
-    public ConversationService(ChatClient.Builder builder) {
+    public ConversationService(ChatClient.Builder builder, ChatMemory memory) {
         this.chatClient = builder
             .defaultAdvisors(MessageChatMemoryAdvisor.builder(
-                new InMemoryChatMemory()).build()) // Remembers conversation
+                memory).build())
             .build();
     }
     
     public String continueConversation(String message) {
-        return chatClient.prompt(message)
+        return chatClient.prompt()
+            .advisors(a -> a.param(
+                ChatMemory.CONVERSATION_ID, CONVERSATION_ID))
+            .user(message)
             .call()
             .content();
         // AI remembers previous messages in this conversation!
@@ -467,7 +471,7 @@ void shouldAnalyzeImage() {
 </div>
 
 <div class="mt-4">
-<img src="/images/ai-vision-dog.jpg" alt="AI Vision" class="rounded-lg opacity-80" />
+<img src="./public/images/ai-vision-dog.jpg" alt="AI Vision" class="rounded-lg opacity-80" />
 </div>
 
 </div>
@@ -1523,7 +1527,7 @@ layout: section
 <!-- Presenter notes:
 - Students already know @Tool from Lab 10 — agents build on that
 - Embabel is pre-1.0 but actively developed by Spring's creator
-- spring-ai-agent-utils requires Spring AI 2.0, so it is preview material for this 1.1.4 course
+- spring-ai-agent-utils requires Spring AI 2.0, so it is preview material for this 1.1.7 course
 - Key insight: Spring AI = Servlet API, Embabel = Spring MVC (higher abstraction)
 -->
 
@@ -1585,7 +1589,7 @@ public class WriteAndReviewAgent {
 - Demo: switch to OperaGenerator repo, embabel branch, and walk through it
 - Also has a langchain4j-agentic branch for comparison
 - Dependency: com.embabel.agent:embabel-agent-starter-shell
-- Compatible with Spring Boot 3.5.9, needs OPENAI_API_KEY
+- Compatible with Spring Boot 3.5.14, needs OPENAI_API_KEY
 -->
 
 ---

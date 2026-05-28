@@ -192,15 +192,18 @@ class ClaudeTests {
 
     @Test
     void requestsAreStateless() {
-        // Use default memory advisor
+        // Use default memory advisor, then set ChatMemory.CONVERSATION_ID on each call
 //        ChatClient chatClient = ChatClient.builder(model)
 //                .defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
 //                .build();
 //
         // Or add the chat memory advisor to each request
+        String conversationId = "inigo-demo";
         System.out.println("Initial query:");
         String answer1 = chatClient.prompt()
-//                .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+//                .advisors(a -> a
+//                        .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+//                        .param(ChatMemory.CONVERSATION_ID, conversationId))
                 .user(u -> u.text("""
                         My name is Inigo Montoya.
                         You killed my father.
@@ -211,7 +214,9 @@ class ClaudeTests {
 
         System.out.println("Second query:");
         String answer2 = chatClient.prompt()
-//                .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+//                .advisors(a -> a
+//                        .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+//                        .param(ChatMemory.CONVERSATION_ID, conversationId))
                 .user(u -> u.text("Who am I?"))
                 .call()
                 .content();

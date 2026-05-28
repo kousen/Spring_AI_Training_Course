@@ -16,6 +16,8 @@ import java.util.Scanner;
 
 @Service
 public class RAGService {
+    private static final String CONVERSATION_ID = "rag-service";
+
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
 
@@ -47,7 +49,9 @@ public class RAGService {
 
         // Use the advisor to handle the RAG workflow
         return chatClient.prompt()
-                .advisors(questionAnswerAdvisor, chatMemoryAdvisor)
+                .advisors(a -> a
+                        .advisors(questionAnswerAdvisor, chatMemoryAdvisor)
+                        .param(ChatMemory.CONVERSATION_ID, CONVERSATION_ID))
                 .user(question)
                 .call()
                 .chatResponse();

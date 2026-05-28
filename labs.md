@@ -2,7 +2,7 @@
 
 This series of labs will guide you through building a Spring AI application that uses various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
 
-> **Note:** This project uses Spring Boot 3.5.9 and Spring AI 1.1.4. The course intentionally stays on the stable 1.1.x line; Spring AI 2.0 milestone releases are preview material and are not used in these labs.
+> **Note:** This project uses Spring Boot 3.5.14 and Spring AI 1.1.7. The course intentionally stays on the stable 1.1.x line; Spring AI 2.0 milestone and release-candidate builds are preview material and are not used in these labs.
 
 ## Table of Contents
 
@@ -481,10 +481,14 @@ Create a test that demonstrates how to make conversations stateful using ChatMem
 @Test
 void requestsWithMemory() {
     ChatClient chatClient = ChatClient.create(model);
+    var memoryAdvisor = MessageChatMemoryAdvisor.builder(memory).build();
+    String conversationId = "inigo-demo";
 
     System.out.println("Initial query with memory:");
     String answer1 = chatClient.prompt()
-            .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+            .advisors(a -> a
+                    .advisors(memoryAdvisor)
+                    .param(ChatMemory.CONVERSATION_ID, conversationId))
             .user("My name is Inigo Montoya. You killed my father. Prepare to die.")
             .call()
             .content();
@@ -492,7 +496,9 @@ void requestsWithMemory() {
 
     System.out.println("Second query with memory:");
     String answer2 = chatClient.prompt()
-            .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+            .advisors(a -> a
+                    .advisors(memoryAdvisor)
+                    .param(ChatMemory.CONVERSATION_ID, conversationId))
             .user("Who am I?")
             .call()
             .content();
@@ -517,7 +523,8 @@ ChatClient chatClient = ChatClient.builder(model)
 ```
 
 If you add that to the `setUp` method, you can remove the
-`advisors` method from the individual requests.
+memory advisor from the individual requests. You still need to
+provide a conversation id for each call that uses memory.
 
 ```java
 @BeforeEach
@@ -534,6 +541,16 @@ to the test class:
 
 ```java
 private ChatClient chatClient;
+```
+
+Then use the same conversation id on related requests:
+
+```java
+String answer = chatClient.prompt()
+        .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, "inigo-demo"))
+        .user("Who am I?")
+        .call()
+        .content();
 ```
 
 [↑ Back to table of contents](#table-of-contents)
@@ -787,6 +804,8 @@ void setUp() {
                     MessageChatMemoryAdvisor.builder(memory).build(),
                     new SimpleLoggerAdvisor())
             .build();
+    // Memory-enabled calls still need:
+    // .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
 
     // Use create for defaults
     chatClient = ChatClient.create(model);
@@ -1056,10 +1075,13 @@ public class RAGService {
 
         // Good to use chat memory when doing RAG
         var chatMemoryAdvisor = MessageChatMemoryAdvisor.builder(memory).build();
+        String conversationId = "rag-service";
 
         // Use the advisor to handle the RAG workflow
         return chatClient.prompt()
-                .advisors(questionAnswerAdvisor, chatMemoryAdvisor)
+                .advisors(a -> a
+                        .advisors(questionAnswerAdvisor, chatMemoryAdvisor)
+                        .param(ChatMemory.CONVERSATION_ID, conversationId))
                 .user(question)
                 .call()
                 .chatResponse();
