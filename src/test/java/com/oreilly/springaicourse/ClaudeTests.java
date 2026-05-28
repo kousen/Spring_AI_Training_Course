@@ -130,7 +130,7 @@ class ClaudeTests {
         // TODO: Demonstrate stateless requests vs memory-enabled chat
         // First query: "My name is Inigo Montoya. You killed my father. Prepare to die."
         // Second query: "Who am I?"
-        // Uncomment MessageChatMemoryAdvisor lines to enable memory
+        // When enabling memory, also set ChatMemory.CONVERSATION_ID on each call
     }
 
     // === Lab 7: Vision Capabilities ===

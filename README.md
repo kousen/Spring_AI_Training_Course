@@ -16,7 +16,7 @@ This repository contains a complete Spring AI training course with both starter 
 ### Prerequisites
 
 1. **Java 17+**
-2. **Spring Boot 3.5.9** with **Spring AI 1.1.4**
+2. **Spring Boot 3.5.14** with **Spring AI 1.1.7**
 3. **Environment Variables**:
    ```bash
    export OPENAI_API_KEY=your_openai_api_key
@@ -73,7 +73,7 @@ Follow the exercises in [labs.md](labs.md) to build Spring AI applications from 
 
 ## Version Policy
 
-This course is pinned to Spring AI 1.1.4 for Spring Boot 3.5.x stability. Spring AI 2.0 is currently available as a milestone release and is not used in the Monday delivery labs.
+This course is pinned to the stable Spring AI 1.1.x line for Spring Boot 3.5.x compatibility. Spring AI 2.0 is currently preview material (`2.0.0-M8`, with `2.0.0-RC1` scheduled for June 1, 2026) and is not used in the Tuesday delivery labs.
 
 ## Key Features & Technologies
 

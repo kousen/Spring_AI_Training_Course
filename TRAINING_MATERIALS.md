@@ -35,7 +35,7 @@ slidev export slides.md --format pptx
 
 ## Note on Large Files
 PPTX exports can be large and may not be visible in GitHub's web interface. If you need to reduce file size, consider:
-- Using PDF format for distribution (499KB)
+- Using PDF format for distribution
 - Re-exporting PPTX with lower image quality
 - Using Git LFS for large presentation files
 
