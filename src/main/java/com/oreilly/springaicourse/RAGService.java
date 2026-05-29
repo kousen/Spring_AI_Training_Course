@@ -61,8 +61,8 @@ public class RAGService {
         // Create a Spring application instance
         var app = new SpringApplication(SpringaicourseApplication.class);
 
-        // Set the active profiles to "rag" and "redis"
-        app.setAdditionalProfiles("rag", "redis");
+        // Use in-memory RAG by default. Add the redis profile for Lab 13.
+        app.setAdditionalProfiles("rag");
 
         // Start the Spring application and get the application context
         ApplicationContext context = app.run(args);

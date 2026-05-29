@@ -24,12 +24,12 @@ import static org.junit.jupiter.api.Assertions.*;
  * - Context7: For library documentation lookup (<a href="https://github.com/upstash/context7">...</a>)
  * - Tavily: For AI-optimized web search (requires TAVILY_API_KEY)
  * <p>
- * Note: Some tests require external MCP servers to be running or available.
- * Enable the 'mcp' profile to activate MCP client configuration.
+ * Note: These tests start external MCP servers through npx. Set
+ * RUN_MCP_CLIENT_TESTS=true when you intentionally want to run Lab 14.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("mcp")
-@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "RUN_MCP_CLIENT_TESTS", matches = "true")
 public class McpClientTests {
 
     @Autowired

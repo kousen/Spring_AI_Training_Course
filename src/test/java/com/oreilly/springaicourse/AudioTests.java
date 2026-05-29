@@ -1,6 +1,7 @@
 package com.oreilly.springaicourse;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
 import org.springframework.ai.audio.tts.TextToSpeechPrompt;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
 class AudioTests {
 
     // For audio transcription testing
@@ -43,8 +45,10 @@ class AudioTests {
         
         // Optionally save to file for verification
         try {
-            Files.write(Path.of("generated_audio.mp3"), response.getResult().getOutput());
-            System.out.println("Audio file generated and saved as 'generated_audio.mp3'");
+            Path outputPath = Path.of("build", "generated-audio", "generated_audio.mp3");
+            Files.createDirectories(outputPath.getParent());
+            Files.write(outputPath, response.getResult().getOutput());
+            System.out.println("Audio file generated and saved as " + outputPath);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

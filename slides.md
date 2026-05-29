@@ -106,6 +106,44 @@ Spring_AI_Training_Course/
 
 ---
 
+# Teaching Path
+
+<div class="grid grid-cols-3 gap-6">
+
+<div>
+
+## Core
+
+- Labs 1-6
+- Lab 10
+- Lab 12
+
+</div>
+
+<div>
+
+## Demo
+
+- Labs 7-9
+- Multimodal APIs
+- Audio/image costs
+
+</div>
+
+<div>
+
+## Advanced
+
+- Lab 13 Redis
+- Labs 14-15 MCP
+- Agent preview
+
+</div>
+
+</div>
+
+---
+
 # Spring AI Ecosystem
 
 <div class="grid grid-cols-3 gap-6">
@@ -195,8 +233,8 @@ docker run -p 6379:6379 redis/redis-stack:latest
 
 # Clone and start
 git clone <repo-url>
-./gradlew build
-./gradlew test
+./scripts/check-course-env
+./gradlew compileJava compileTestJava
 ```
 
 </div>
@@ -427,6 +465,8 @@ layout: section
 
 # Lab 7-9: Multimodal AI
 ## Beyond Text: Vision and Audio
+
+`RUN_MULTIMODAL_TESTS=true ./gradlew test --tests OpenAiTests --tests AudioTests`
 
 ---
 
@@ -960,6 +1000,9 @@ MCP enables AI to securely access external tools and data sources
 ```java {1-8|10-18|20-24}
 @SpringBootTest
 @ActiveProfiles("mcp")
+@EnabledIfEnvironmentVariable(
+    named = "RUN_MCP_CLIENT_TESTS",
+    matches = "true")
 public class McpClientTests {
     @Autowired
     private ChatModel chatModel;
@@ -1131,9 +1174,9 @@ public class AIConfiguration {
     }
     
     @Bean
-    @ConditionalOnProfile("rag")
-    public VectorStore vectorStore() {
-        return new SimpleVectorStore();
+    @Profile("rag")
+    public VectorStore vectorStore(EmbeddingModel embeddingModel) {
+        return SimpleVectorStore.builder(embeddingModel).build();
     }
 }
 ```
@@ -1144,13 +1187,13 @@ public class AIConfiguration {
 
 ```java
 @Bean
-@ConditionalOnProfile({"rag", "redis"})
+@Profile({"rag", "redis"})
 public VectorStore redisVectorStore(RedisConnectionFactory factory) {
     return new RedisVectorStore(factory, embeddingModel());
 }
 
 @Bean
-@ConditionalOnProfile("mcp")
+@Profile("mcp")
 public McpClientConfiguration mcpConfig() {
     return new McpClientConfiguration();
 }
@@ -1277,10 +1320,10 @@ class RAGIntegrationTest {
 
 <v-clicks>
 
-- **GPT-4**: Complex reasoning, higher cost
-- **GPT-3.5/4o**: Faster, cost-effective for simple tasks
-- **Claude**: Strong for analysis, coding
-- **Local models**: Privacy, no API costs
+- **Small models**: Fast, cheap, great for routing
+- **Reasoning models**: Slower, better for complex tasks
+- **Multimodal models**: Images, audio, documents
+- **Local models**: Privacy, offline-friendly
 
 </v-clicks>
 
@@ -1330,10 +1373,10 @@ class RAGIntegrationTest {
 
 <v-clicks>
 
-- **Logging**: All AI interactions and costs
-- **Metrics**: Response times, token usage
-- **Tracing**: Request flows through services
-- **Alerting**: High costs, failed requests
+- **Actuator + Micrometer**: Spring AI observations
+- **Metrics**: Latency, token usage, vector store calls
+- **Tracing**: ChatClient, advisors, model calls
+- **Prompt logging**: Useful, but off by default
 
 </v-clicks>
 

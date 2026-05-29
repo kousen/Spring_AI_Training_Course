@@ -34,11 +34,24 @@ This repository contains a complete Spring AI training course with both starter 
 git clone https://github.com/kousen/Spring_AI_Training_Course.git
 cd Spring_AI_Training_Course
 
-# Build the project
-./gradlew build
+# Check your local setup
+./scripts/check-course-env
 
-# Run basic tests (many will be empty until you implement them)
+# Fast verification before starting the labs
+./gradlew compileJava compileTestJava
+./gradlew test --tests SpringaicourseApplicationTests
+
+# Full lab test runs may call model APIs and optional services
 ./gradlew test
+
+# Optional MCP client lab: starts external npx-based MCP servers
+RUN_MCP_CLIENT_TESTS=true ./gradlew test --tests McpClientTests
+
+# Optional multimodal labs: vision, image generation, and audio APIs
+RUN_MULTIMODAL_TESTS=true ./gradlew test --tests OpenAiTests --tests AudioTests
+
+# Optional RAG evaluation pass: adds extra model calls for evaluator checks
+RUN_RAG_EVALUATION_TESTS=true ./gradlew test --tests RAGTests
 
 # View complete solutions (when needed)
 git checkout solutions
@@ -64,6 +77,12 @@ Follow the exercises in [labs.md](labs.md) to build Spring AI applications from 
 14. **Model Context Protocol (MCP) Client** - Connect to external tool servers
 15. **Model Context Protocol (MCP) Server** - Create your own tool servers
 
+## Recommended Teaching Path
+
+For a 3-4 hour delivery, treat Labs 1-6, 10, and 12 as the core path. They cover ChatClient, advisors, structured output, prompt templates, chat memory, tools, and a complete RAG flow.
+
+Use Labs 7-9 as demos or short exercises depending on API access and time. Use Labs 13-15 as advanced/optional material: Redis requires a local service, and MCP is best taught after students are comfortable with tools.
+
 ## Learning Approach
 
 - **Start with TODOs**: Each test class contains guided TODO comments
@@ -73,7 +92,7 @@ Follow the exercises in [labs.md](labs.md) to build Spring AI applications from 
 
 ## Version Policy
 
-This course is pinned to the stable Spring AI 1.1.x line for Spring Boot 3.5.x compatibility. Spring AI 2.0 is currently preview material (`2.0.0-M8`, with `2.0.0-RC1` scheduled for June 1, 2026) and is not used in the Tuesday delivery labs.
+This course is pinned to the stable Spring AI 1.1.x line for Spring Boot 3.5.x compatibility. Spring AI 2.0 milestone and release-candidate builds are preview material and are not used in the Tuesday delivery labs.
 
 ## Key Features & Technologies
 
@@ -97,14 +116,14 @@ This course is pinned to the stable Spring AI 1.1.x line for Spring Boot 3.5.x c
   - STDIO and SSE transport support
   - Auto-discovery of @Tool annotated methods
 
-### Production-Ready Patterns
+### Production-Oriented Patterns
 - **Profile-based Configuration**: Separate concerns with Spring profiles
 - **Primary ChatModel**: Resolve multiple AI provider ambiguity  
 - **Service Layer Architecture**: Proper separation of concerns
 - **Comprehensive Testing**: Unit and integration tests with modern `@MockitoBean`
-- **Error Handling**: Retries, circuit breakers, and graceful degradation
+- **Error Handling**: Retries, timeouts, and graceful degradation
 - **Cost Optimization**: Token management and model selection strategies
-- **Security & Observability**: API key management, monitoring, and tracing
+- **Security & Observability**: API key management plus Spring AI/Micrometer metrics and tracing when Actuator is enabled
 
 ## Profile Usage
 

@@ -206,8 +206,7 @@ class ClaudeTests {
 //                        .param(ChatMemory.CONVERSATION_ID, conversationId))
                 .user(u -> u.text("""
                         My name is Inigo Montoya.
-                        You killed my father.
-                        Prepare to die."""))
+                        I am a fencing instructor from Florin."""))
                 .call()
                 .content();
         System.out.println(answer1);

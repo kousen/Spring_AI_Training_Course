@@ -260,8 +260,7 @@ class OpenAiTests {
 //                        .param(ChatMemory.CONVERSATION_ID, conversationId))
                 .user(u -> u.text("""
                         My name is Inigo Montoya.
-                        You killed my father.
-                        Prepare to die."""))
+                        I am a fencing instructor from Florin."""))
                 .call()
                 .content();
         System.out.println(answer1);
@@ -278,6 +277,7 @@ class OpenAiTests {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
     void localVisionTest() {
         String response = chatClient.prompt()
                 .user(u -> u.text("What do you see on this picture?")
@@ -288,6 +288,7 @@ class OpenAiTests {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
     void remoteVisionTest() {
         String imageUrl = "https://upload.wikimedia.org/wikipedia/commons/9/9a/Deelerwoud%2C_09-05-2024_%28actm.%29_04.jpg";
         String response = chatClient.prompt()
@@ -305,6 +306,7 @@ class OpenAiTests {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
     void imageGenerator(@Autowired OpenAiImageModel imageModel) {
         String prompt = """
                 A warrior cat rides a dragon into battle""";
@@ -313,6 +315,7 @@ class OpenAiTests {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
     void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOException {
         String prompt = """
                 A warrior cat rides a dragon into battle""";
@@ -332,9 +335,11 @@ class OpenAiTests {
         byte[] imageBytes = Base64.getDecoder().decode(image.getB64Json());
 
         // Write to file (e.g., PNG)
-        Files.write(Path.of("src/main/resources", "output_image.png"), imageBytes);
+        Path outputPath = Path.of("build", "generated-images", "output_image.png");
+        Files.createDirectories(outputPath.getParent());
+        Files.write(outputPath, imageBytes);
 
-        System.out.println("Image saved as output_image.png");
+        System.out.println("Image saved as " + outputPath);
     }
 
     @Test

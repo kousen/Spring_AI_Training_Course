@@ -16,8 +16,10 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"rag","redis"})
+@ActiveProfiles("rag")
 public class RAGTests {
+    private static final boolean RUN_RAG_EVALUATION =
+            Boolean.parseBoolean(System.getenv().getOrDefault("RUN_RAG_EVALUATION_TESTS", "false"));
 
     @Autowired
     private RAGService ragService;
@@ -31,14 +33,21 @@ public class RAGTests {
     
     @BeforeEach
     void setUp() {
-        // Create RelevancyEvaluator for testing RAG response quality
-        relevancyEvaluator = new RelevancyEvaluator(ChatClient.builder(openAiModel));
+        if (RUN_RAG_EVALUATION) {
+            // Create RelevancyEvaluator for testing RAG response quality
+            relevancyEvaluator = new RelevancyEvaluator(ChatClient.builder(openAiModel));
+        }
     }
     
     /**
      * Helper method to evaluate if a response is relevant using Spring AI's RelevancyEvaluator
      */
     private void evaluateRelevancy(String question, ChatResponse chatResponse) {
+        if (!RUN_RAG_EVALUATION) {
+            System.out.println("Skipping AI relevancy evaluation; set RUN_RAG_EVALUATION_TESTS=true to enable it.");
+            return;
+        }
+
         var evaluationRequest = new EvaluationRequest(
             question,
             chatResponse.getMetadata().get(QuestionAnswerAdvisor.RETRIEVED_DOCUMENTS),
@@ -51,14 +60,12 @@ public class RAGTests {
     }
 
     @Test
-    void ragFromWikipediaInfo() {
-        // Query about Spring (should return relevant info, even though it's wrong
-        // because the Wikipedia page does not have the current version)
-        String question = "What is the latest version of the Spring Framework?";
+    void ragFromCourseVersionInfo() {
+        String question = "Which Spring Boot and Spring AI versions does this course use, and why?";
         ChatResponse chatResponse = ragService.queryWithResponse(question);
         String response = chatResponse.getResult().getOutput().getText();
 
-        System.out.println("RAG Response about Spring:");
+        System.out.println("RAG Response about course versions:");
         System.out.println(response);
 
         // Basic assertions
@@ -70,7 +77,7 @@ public class RAGTests {
     }
 
     @Test
-    void ragFromPdfInfo() {
+    void ragFromFutureOfJobsInfo() {
         // Query about the World Economic Forum report
         String question = """
                 What are the most transformative technology trends expected to
@@ -92,9 +99,6 @@ public class RAGTests {
 
     @Test
     void outOfScopeQuery() {
-        // Create a separate ChatClient for evaluating responses
-        ChatClient evaluatorClient = ChatClient.create(openAiModel);
-
         String outOfScopeQuestion = "How do I implement GraphQL in Spring?";
         String outOfScopeResponse = ragService.query(outOfScopeQuestion);
 
@@ -102,6 +106,13 @@ public class RAGTests {
         System.out.println(outOfScopeResponse);
 
         assertNotNull(outOfScopeResponse);
+        if (!RUN_RAG_EVALUATION) {
+            System.out.println("Skipping AI out-of-scope evaluation; set RUN_RAG_EVALUATION_TESTS=true to enable it.");
+            return;
+        }
+
+        // Create a separate ChatClient for evaluating responses
+        ChatClient evaluatorClient = ChatClient.create(openAiModel);
         
         // Use AI to evaluate if the response properly indicates lack of knowledge
         String evaluationPrompt = String.format("""
@@ -125,7 +136,7 @@ public class RAGTests {
 
     @Test
     void domainSpecificQuery() {
-        String question = "Who won the Kendrick Lamar / Drake feud?";
+        String question = "According to the course notes, who had stronger cultural momentum in the Kendrick Lamar and Drake feud?";
         ChatResponse chatResponse = ragService.queryWithResponse(question);
         String response = chatResponse.getResult().getOutput().getText();
 
