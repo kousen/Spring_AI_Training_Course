@@ -1,6 +1,7 @@
 package com.oreilly.springaicourse;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
 import org.springframework.ai.openai.*;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
 class AudioTests {
 
     // For audio transcription testing
@@ -34,7 +36,7 @@ class AudioTests {
         // TODO: Implement text-to-speech conversion
         // 1. Create a TextToSpeechPrompt with text and optional OpenAiAudioSpeechOptions
         // 2. Use speechModel.call() to generate audio
-        // 3. Save the result to an MP3 file in src/main/resources/
+        // 3. Save the result to an MP3 file in build/generated-audio/
         // 4. Print confirmation message
     }
 

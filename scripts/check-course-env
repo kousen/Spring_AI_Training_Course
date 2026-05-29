@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -u
+
+failures=0
+
+check_required() {
+  local label="$1"
+  local command_name="$2"
+
+  if command -v "$command_name" >/dev/null 2>&1; then
+    printf "ok   %s found: %s\n" "$label" "$(command -v "$command_name")"
+  else
+    printf "fail %s not found\n" "$label"
+    failures=$((failures + 1))
+  fi
+}
+
+check_optional() {
+  local label="$1"
+  local command_name="$2"
+
+  if command -v "$command_name" >/dev/null 2>&1; then
+    printf "ok   %s found: %s\n" "$label" "$(command -v "$command_name")"
+  else
+    printf "skip %s not found\n" "$label"
+  fi
+}
+
+check_required "Java" java
+
+if [ -x "./gradlew" ]; then
+  printf "ok   Gradle wrapper found\n"
+else
+  printf "fail Gradle wrapper not executable\n"
+  failures=$((failures + 1))
+fi
+
+if [ -n "${OPENAI_API_KEY:-}" ]; then
+  printf "ok   OPENAI_API_KEY is set\n"
+else
+  printf "fail OPENAI_API_KEY is not set\n"
+  failures=$((failures + 1))
+fi
+
+if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+  printf "ok   ANTHROPIC_API_KEY is set\n"
+else
+  printf "skip ANTHROPIC_API_KEY is not set; Claude labs are optional\n"
+fi
+
+check_optional "Docker" docker
+check_optional "npx" npx
+
+if command -v nc >/dev/null 2>&1 && nc -z localhost 6379 >/dev/null 2>&1; then
+  printf "ok   Redis is listening on localhost:6379\n"
+else
+  printf "skip Redis is not listening on localhost:6379; Lab 13 is optional\n"
+fi
+
+printf "\nRecommended first verification:\n"
+printf "  ./gradlew compileJava compileTestJava\n"
+printf "  ./gradlew test --tests SpringaicourseApplicationTests\n"
+
+if [ "$failures" -gt 0 ]; then
+  printf "\n%d required check(s) failed.\n" "$failures"
+  exit 1
+fi
+
+printf "\nAll required checks passed.\n"

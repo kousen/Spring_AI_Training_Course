@@ -21,13 +21,19 @@ import org.springframework.core.io.Resource;
 
 @Configuration
 public class AppConfig {
-    private static final String FEUD_URL = "https://en.wikipedia.org/wiki/Drake%E2%80%93Kendrick_Lamar_feud";
-    private static final String SPRING_URL = "https://en.wikipedia.org/wiki/Spring_Framework";
-
     private final TextSplitter splitter = new TokenTextSplitter();
 
     @Value("classpath:/pdfs/WEF_Future_of_Jobs_Report_2025.pdf")
     private Resource jobsReport2025;
+
+    @Value("classpath:/rag/spring-ai-course.md")
+    private Resource springAiCourseNotes;
+
+    @Value("classpath:/rag/future-of-jobs-summary.md")
+    private Resource futureOfJobsSummary;
+
+    @Value("classpath:/rag/kendrick-drake-summary.md")
+    private Resource kendrickDrakeSummary;
 
     @Bean
     @Profile("rag")
@@ -37,14 +43,18 @@ public class AppConfig {
 
             // TODO: Implement document loading and processing
             // 1. Check if using Redis and if data already exists (for efficiency)
-            // 2. Load documents from various sources:
-            //    - PDF documents using PagePdfDocumentReader
-            //    - Web pages using JsoupDocumentReader  
+            // 2. Load documents from local course resources first:
+            //    - spring-ai-course.md
+            //    - future-of-jobs-summary.md
+            //    - kendrick-drake-summary.md
+            //    The full PDF and live web pages are optional extensions.
             // 3. Split documents using TextSplitter
             // 4. Add processed documents to vector store
-            
+
             System.out.println("TODO: Document loading and vector store population not yet implemented");
-            System.out.println("Available sources: " + SPRING_URL + ", " + FEUD_URL + ", " + jobsReport2025.getFilename());
+            System.out.println("Available sources: " + springAiCourseNotes.getFilename() + ", "
+                    + futureOfJobsSummary.getFilename() + ", " + kendrickDrakeSummary.getFilename()
+                    + ", optional PDF: " + jobsReport2025.getFilename());
         };
     }
 

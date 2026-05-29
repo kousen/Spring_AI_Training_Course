@@ -18,10 +18,12 @@ public class DocumentReaderTests {
     @Value("classpath:/pdfs/WEF_Future_of_Jobs_Report_2025.pdf")
     private Resource resource;
 
+    @Value("classpath:/spring-framework.html")
+    private Resource springFrameworkHtml;
+
     @Test
     void retrieveContentFromUrl() {
-        String url = "https://spring.io";
-        List<Document> documents = new JsoupDocumentReader(url).get();
+        List<Document> documents = new JsoupDocumentReader(springFrameworkHtml).get();
         splitDocuments(documents);
     }
 

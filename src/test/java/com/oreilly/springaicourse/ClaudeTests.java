@@ -128,7 +128,7 @@ class ClaudeTests {
     @Test
     void requestsAreStateless() {
         // TODO: Demonstrate stateless requests vs memory-enabled chat
-        // First query: "My name is Inigo Montoya. You killed my father. Prepare to die."
+        // First query: "My name is Inigo Montoya. I am a fencing instructor from Florin."
         // Second query: "Who am I?"
         // When enabling memory, also set ChatMemory.CONVERSATION_ID on each call
     }

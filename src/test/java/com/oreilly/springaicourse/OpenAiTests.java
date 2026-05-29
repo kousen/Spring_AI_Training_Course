@@ -146,7 +146,7 @@ class OpenAiTests {
     @Test
     void requestsAreStateless() {
         // TODO: Demonstrate stateless requests vs memory-enabled chat
-        // First query: "My name is Inigo Montoya. You killed my father. Prepare to die."
+        // First query: "My name is Inigo Montoya. I am a fencing instructor from Florin."
         // Second query: "Who am I?"
         // When enabling memory, also set ChatMemory.CONVERSATION_ID on each call
     }
@@ -154,6 +154,7 @@ class OpenAiTests {
     // === Lab 7: Vision Capabilities ===
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
     void localVisionTest() {
         // TODO: Analyze a local image file
         // Use .media(MimeTypeUtils.IMAGE_PNG, imageResource)
@@ -161,6 +162,7 @@ class OpenAiTests {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
     void remoteVisionTest() {
         // TODO: Analyze a remote image from URL
         // Use URI.create(imageUrl).toURL() with proper exception handling
@@ -169,6 +171,7 @@ class OpenAiTests {
     // === Lab 8: Image Generation ===
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
     void imageGenerator(@Autowired OpenAiImageModel imageModel) {
         // TODO: Generate an image using DALL-E
         // Create ImagePrompt with description
@@ -176,10 +179,11 @@ class OpenAiTests {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
     void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOException {
         // TODO: Generate image and save as base64-encoded file
         // Use gpt-image-1 model for base64 response
-        // Decode and save to src/main/resources/output_image.png
+        // Decode and save to build/generated-images/output_image.png
     }
 
     // === Lab 10: AI Tools ===

@@ -12,7 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
-@ActiveProfiles({"rag", "redis"})  // Enable RAG and Redis profiles for testing
+@ActiveProfiles("rag")  // Use in-memory RAG by default; add redis only for Lab 13
 class RAGTests {
 
     @Autowired
@@ -24,19 +24,19 @@ class RAGTests {
     // === Advanced RAG Testing ===
 
     @Test
-    void testWikipediaRAG() {
-        // TODO: Test RAG with Wikipedia content
+    void testCourseVersionRAG() {
+        // TODO: Test RAG with local course content
         // 1. Create a ChatClient with QuestionAnswerAdvisor
-        // 2. Ask a question about Spring Framework
+        // 2. Ask a question about this course's Spring AI version policy
         // 3. Verify the response uses retrieved context
         // 4. Print the response
     }
 
     @Test
-    void testPdfRAG() {
-        // TODO: Test RAG with PDF content  
-        // 1. Ask a question about content from the PDF documents
-        // 2. Verify the response references the PDF content
+    void testFutureOfJobsRAG() {
+        // TODO: Test RAG with the local Future of Jobs summary
+        // 1. Ask a question about AI and labor-market trends by 2030
+        // 2. Verify the response references the local summary content
         // 3. Print the response showing context usage
     }
 

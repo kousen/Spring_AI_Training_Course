@@ -7,6 +7,7 @@ This series of labs will guide you through building a Spring AI application that
 ## Table of Contents
 
 - [Setup](#setup)
+- [Recommended Teaching Path](#recommended-teaching-path)
 - [Lab 1: Basic Chat Interactions](#lab-1-basic-chat-interactions)
 - [Lab 2: Request and Response Logging](#lab-2-request-and-response-logging)
 - [Lab 3: Streaming Responses](#lab-3-streaming-responses)
@@ -54,10 +55,24 @@ This series of labs will guide you through building a Spring AI application that
    spring.ai.openai.chat.options.temperature=1.0
    ```
 
-5. Check that the project builds successfully:
+5. Check your environment and run a fast verification:
    ```bash
-   ./gradlew build
+   ./scripts/check-course-env
+   ./gradlew compileJava compileTestJava
+   ./gradlew test --tests SpringaicourseApplicationTests
    ```
+
+## Recommended Teaching Path
+
+For a 3-4 hour course, the core path is:
+
+1. Labs 1-6 for ChatClient, logging advisors, streaming, structured output, prompt templates, and chat memory
+2. Lab 10 for tool/function calling
+3. Lab 12 for an end-to-end RAG implementation with the in-memory vector store
+
+Use Labs 7-9 as demos or short exercises when multimodal API access is reliable. Use Labs 13-15 as advanced material: Redis requires a local service, and MCP is most effective after students are already comfortable with tools.
+
+[↑ Back to table of contents](#table-of-contents)
 
 ## Lab 1: Basic Chat Interactions
 
@@ -441,7 +456,7 @@ void defaultRequestsAreStateless() {
 
     System.out.println("Initial query:");
     String answer1 = chatClient.prompt()
-            .user("My name is Inigo Montoya. You killed my father. Prepare to die.")
+            .user("My name is Inigo Montoya. I am a fencing instructor from Florin.")
             .call()
             .content();
     System.out.println(answer1);
@@ -489,7 +504,7 @@ void requestsWithMemory() {
             .advisors(a -> a
                     .advisors(memoryAdvisor)
                     .param(ChatMemory.CONVERSATION_ID, conversationId))
-            .user("My name is Inigo Montoya. You killed my father. Prepare to die.")
+            .user("My name is Inigo Montoya. I am a fencing instructor from Florin.")
             .call()
             .content();
     System.out.println(answer1);
@@ -556,6 +571,12 @@ String answer = chatClient.prompt()
 [↑ Back to table of contents](#table-of-contents)
 
 ## Lab 7: Vision Capabilities
+
+Labs 7-9 use multimodal APIs that may take longer and may generate files. Run them explicitly:
+
+```bash
+RUN_MULTIMODAL_TESTS=true ./gradlew test --tests OpenAiTests --tests AudioTests
+```
 
 ### 7.1 Local Image
 
@@ -644,7 +665,7 @@ Java includes a built-in decoder that can be used to
 extract the image and save it to a file.
 
 ```java
-    @Test
+@Test
 void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOException {
    String prompt = """
            A warrior cat rides a dragon into battle""";
@@ -665,9 +686,11 @@ void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOExcep
    // Decode the base64 to bytes
    byte[] imageBytes = Base64.getDecoder().decode(image.getB64Json());
 
-   // Write to file (e.g., PNG)
-   Files.write(Path.of("src/main/resources","output_image.png"), imageBytes);
-   System.out.println("Image saved as output_image.png in src/main/resources");
+   // Write to build output instead of the source tree
+   Path outputPath = Path.of("build", "generated-images", "output_image.png");
+   Files.createDirectories(outputPath.getParent());
+   Files.write(outputPath, imageBytes);
+   System.out.println("Image saved as " + outputPath);
 }
 ```
 
@@ -698,8 +721,10 @@ void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
 
     // Optionally save to file for verification
     try {
-        Files.write(Path.of("generated_audio.mp3"), response.getResult().getOutput());
-        System.out.println("Audio file generated and saved as 'generated_audio.mp3'");
+        Path outputPath = Path.of("build", "generated-audio", "generated_audio.mp3");
+        Files.createDirectories(outputPath.getParent());
+        Files.write(outputPath, response.getResult().getOutput());
+        System.out.println("Audio file generated and saved as " + outputPath);
     } catch (IOException e) {
         throw new RuntimeException(e);
     }
@@ -1021,6 +1046,8 @@ To run your application with RAG enabled, set the active profile:
 
 By using the profile approach, you ensure that the RAG system only loads its knowledge base when explicitly enabled, preventing unnecessary processing during regular application use or other tests.
 
+For classroom reliability, start with the in-memory `SimpleVectorStore` and local/course-provided documents. Live web pages are useful extensions, but they can change, rate-limit, or block automated readers.
+
 ### 12.6 Using a Persistent Vector Store
 
 For long-term persistence and better performance with large documents, you can consider using a persistent vector store like Chroma or PostgreSQL.
@@ -1093,10 +1120,18 @@ public class RAGService {
 
 Enhance your RAG tests to use Spring AI's semantic evaluation capabilities:
 
+The evaluator makes additional model calls. Keep it as an explicit quality pass:
+
+```bash
+RUN_RAG_EVALUATION_TESTS=true ./gradlew test --tests RAGTests
+```
+
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"rag","redis"})
+@ActiveProfiles("rag")
 public class RAGTests {
+    private static final boolean RUN_RAG_EVALUATION =
+            Boolean.parseBoolean(System.getenv().getOrDefault("RUN_RAG_EVALUATION_TESTS", "false"));
 
     @Autowired
     private RAGService ragService;
@@ -1109,17 +1144,20 @@ public class RAGTests {
     
     @BeforeEach
     void setUp() {
-        // Create a separate ChatClient for evaluating responses
-        evaluatorClient = ChatClient.create(openAiModel);
-        
-        // Create RelevancyEvaluator for testing RAG response quality
-        relevancyEvaluator = new RelevancyEvaluator(ChatClient.builder(openAiModel));
+        if (RUN_RAG_EVALUATION) {
+            evaluatorClient = ChatClient.create(openAiModel);
+            relevancyEvaluator = new RelevancyEvaluator(ChatClient.builder(openAiModel));
+        }
     }
     
     /**
      * Helper method to evaluate if a response is relevant using Spring AI's RelevancyEvaluator
      */
     private void evaluateRelevancy(String question, ChatResponse chatResponse) {
+        if (!RUN_RAG_EVALUATION) {
+            return;
+        }
+
         EvaluationRequest evaluationRequest = new EvaluationRequest(
             question,
             chatResponse.getMetadata().get(QuestionAnswerAdvisor.RETRIEVED_DOCUMENTS),
@@ -1132,13 +1170,12 @@ public class RAGTests {
     }
 
     @Test
-    void ragFromWikipediaInfo() {
-        // Query about Spring (should return relevant info)
-        String question = "What is the latest version of the Spring Framework?";
+    void ragFromCourseVersionInfo() {
+        String question = "Which Spring Boot and Spring AI versions does this course use, and why?";
         ChatResponse chatResponse = ragService.queryWithResponse(question);
         String response = chatResponse.getResult().getOutput().getText();
 
-        System.out.println("RAG Response about Spring:");
+        System.out.println("RAG Response about course versions:");
         System.out.println(response);
 
         // Basic assertions
@@ -1150,7 +1187,7 @@ public class RAGTests {
     }
 
     @Test
-    void ragFromPdfInfo() {
+    void ragFromFutureOfJobsInfo() {
         // Query about the World Economic Forum report
         String question = """
                 What are the most transformative technology trends expected to
@@ -1343,6 +1380,8 @@ docker run -p 6379:6379 redis/redis-stack:latest
 
 This command starts Redis Stack, which includes Redis and the necessary vector search capabilities.
 
+Redis is intentionally optional for this course. Lab 12 and the starter `RAGTests` use the in-memory vector store by default; add the `redis` profile only when teaching this lab.
+
 ### 13.2 Update Configuration
 
 Create a dedicated Redis profile in `application-redis.properties`:
@@ -1353,6 +1392,7 @@ Create a dedicated Redis profile in `application-redis.properties`:
 # Use with: --spring.profiles.active=rag,redis
 
 # Redis vector store settings
+spring.ai.vectorstore.type=redis
 spring.ai.vectorstore.redis.initialize-schema=true
 spring.data.redis.host=localhost
 spring.data.redis.port=6379
@@ -1374,6 +1414,8 @@ That's sufficient to create and configure a Redis vector store. The Spring AI Re
 ### 13.3 Modify AppConfig to Support Redis
 
 Modify your AppConfig class to support switching between `SimpleVectorStore` and Redis using profiles:
+
+Keep the local RAG documents from Lab 12 as the default corpus. Redis should first be a vector-store swap, not a switch to slower live web and full-PDF ingestion. After the Redis path works, live pages and larger PDFs make good extension exercises.
 
 ```java
 @Configuration
@@ -1504,12 +1546,11 @@ public class RAGTests {
     private RAGService ragService;
 
     @Test
-    void ragFromWikipediaInfo() {
-        // Query about Spring (should return relevant info)
-        String question = "What is the latest version of the Spring Framework?";
+    void ragFromCourseVersionInfo() {
+        String question = "Which Spring Boot and Spring AI versions does this course use, and why?";
         String response = ragService.query(question);
 
-        System.out.println("RAG Response about Spring:");
+        System.out.println("RAG Response about course versions:");
         System.out.println(response);
 
         // Assertions for Chat Client API query
@@ -1523,10 +1564,10 @@ public class RAGTests {
 
 ### 13.5 Running the Tests
 
-Run the tests with both profiles activated:
+After changing `RAGTests` to use both profiles, run the tests with Redis running:
 
 ```bash
-./gradlew test --tests RAGTests -Dspring.profiles.active=rag,redis
+./gradlew test --tests RAGTests
 ```
 
 [↑ Back to table of contents](#table-of-contents)
@@ -1579,7 +1620,7 @@ Create a test class to demonstrate MCP client usage with Context7:
 ```java
 @SpringBootTest
 @ActiveProfiles("mcp")
-@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "RUN_MCP_CLIENT_TESTS", matches = "true")
 public class McpClientTests {
 
     @Autowired
@@ -1669,6 +1710,12 @@ public class McpClientTests {
         }
     }
 }
+```
+
+Run this lab explicitly, because it starts external `npx`-based MCP servers:
+
+```bash
+RUN_MCP_CLIENT_TESTS=true ./gradlew test --tests McpClientTests
 ```
 
 **Important**: Spring AI's MCP client doesn't expose tools as a `List<ToolCallback>` bean directly. Instead, it provides a `ToolCallbackProvider` bean. You must call `getToolCallbacks()` on this provider to retrieve the actual tool callbacks.
