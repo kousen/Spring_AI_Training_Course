@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Agent Local State ###
+.codex/
+
 ### macOS ###
 .DS_Store
 **/.DS_Store
