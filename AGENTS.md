@@ -15,7 +15,7 @@ This is a **hands-on training course** for learning Spring AI through progressiv
 - **Test classes**: Contain TODO comments guiding students through implementation
 - **Service classes**: Skeleton implementations with TODO instructions
 
-The course demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 1.1.4), covering:
+The course demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 1.1.7), covering:
 
 - Text generation and chat capabilities
 - Structured data extraction  
@@ -350,7 +350,7 @@ slidev build slides.md
 - **Interactive code examples**: Magic-move animations and progressive disclosure
 - **Provider overview**: Comprehensive list of 18+ supported AI providers
 - **Production patterns**: Error handling, testing, cost optimization
-- **Modern practices**: Updated with `@MockitoBean` and Spring Boot 3.5.9 patterns
+- **Modern practices**: Updated with `@MockitoBean` and Spring Boot 3.5.14 patterns
 - **Proper Slidev structure**: Images in `public/images/` for correct rendering
 
 ### Training Session Structure
