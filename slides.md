@@ -451,6 +451,10 @@ public class ConversationService {
 }
 ```
 
+---
+
+# Lab 6: Memory in Action
+
 <v-click>
 
 **Try this**: 
@@ -511,7 +515,7 @@ void shouldAnalyzeImage() {
 </div>
 
 <div class="mt-4">
-<img src="./public/images/ai-vision-dog.jpg" alt="AI Vision" class="rounded-lg opacity-80" />
+<img :src="'/images/ai-vision-dog.jpg'" alt="AI Vision" class="rounded-lg opacity-80" />
 </div>
 
 </div>
@@ -664,6 +668,7 @@ void shouldCallTool() {
 **Result**: AI can execute your Java methods when needed!
 
 ---
+
 # Lab 11: Refactoring for Production
 
 ```java {1-8|10-18|20-27}
@@ -997,7 +1002,7 @@ MCP enables AI to securely access external tools and data sources
 
 # Lab 14: MCP Client
 
-```java {1-8|10-18|20-24}
+```java {1-6|7-15}
 @SpringBootTest
 @ActiveProfiles("mcp")
 @EnabledIfEnvironmentVariable(
@@ -1012,18 +1017,25 @@ public class McpClientTests {
 
     private ChatClient chatClient;
     private ToolCallback[] mcpTools;
+    // setUp() on next slide...
+}
+```
 
-    @BeforeEach
-    void setUp() {
-        // Extract tools from the provider
-        if (toolCallbackProvider != null) {
-            mcpTools = toolCallbackProvider.getToolCallbacks();
-        }
-        // Build ChatClient with discovered tools
-        chatClient = ChatClient.builder(chatModel)
-            .defaultToolCallbacks(mcpTools)
-            .build();
+---
+
+# Lab 14: MCP Client — Setup
+
+```java {1-6|7-11}
+@BeforeEach
+void setUp() {
+    // Extract tools from the provider
+    if (toolCallbackProvider != null) {
+        mcpTools = toolCallbackProvider.getToolCallbacks();
     }
+    // Build ChatClient with discovered tools
+    chatClient = ChatClient.builder(chatModel)
+        .defaultToolCallbacks(mcpTools)
+        .build();
 }
 ```
 
