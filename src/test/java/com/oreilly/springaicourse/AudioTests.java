@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
-import org.springframework.ai.openai.*;
-import org.springframework.ai.openai.api.OpenAiAudioApi;
 import org.springframework.ai.audio.tts.TextToSpeechPrompt;
 import org.springframework.ai.audio.tts.TextToSpeechResponse;
+import org.springframework.ai.openai.*;
+import org.springframework.ai.openai.api.OpenAiAudioApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,24 +29,44 @@ class AudioTests {
     @Value("classpath:audio/tftjs.mp3")
     private Resource sampleAudioResource;
 
-    // === Lab 9: Audio Processing ===
-
     @Test
-    void testTextToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) throws IOException {
-        // TODO: Implement text-to-speech conversion
-        // 1. Create a TextToSpeechPrompt with text and optional OpenAiAudioSpeechOptions
-        // 2. Use speechModel.call() to generate audio
-        // 3. Save the result to an MP3 file in build/generated-audio/
-        // 4. Print confirmation message
+    void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
+        String text = "Welcome to Spring AI, a powerful framework for integrating AI into your Spring applications.";
+        
+        var options = OpenAiAudioSpeechOptions.builder()
+                .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
+                .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
+                .speed(1.0)
+                .build();
+        
+        var prompt = new TextToSpeechPrompt(text, options);
+        TextToSpeechResponse response = speechModel.call(prompt);
+        assertNotNull(response);
+        
+        // Optionally save to file for verification
+        try {
+            Path outputPath = Path.of("build", "generated-audio", "generated_audio.mp3");
+            Files.createDirectories(outputPath.getParent());
+            Files.write(outputPath, response.getResult().getOutput());
+            System.out.println("Audio file generated and saved as " + outputPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Test
-    void testSpeechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
-        // TODO: Implement speech-to-text transcription
-        // 1. Create AudioTranscriptionPrompt with the sample audio resource
-        // 2. Use transcriptionModel.call() to transcribe audio
-        // 3. Print the transcribed text
-        // 4. Assert the result is not null
-    }
+    void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
+        // Optional configuration
+        var options = OpenAiAudioTranscriptionOptions.builder()
+                .language("en")
+                .prompt("Transcribe this audio file.")
+                .temperature(0.0f)
+                .responseFormat(OpenAiAudioApi.TranscriptResponseFormat.TEXT)
+                .build();
 
+        var prompt = new AudioTranscriptionPrompt(sampleAudioResource, options);
+        AudioTranscriptionResponse response = transcriptionModel.call(prompt);
+        assertNotNull(response);
+        System.out.println("Transcription: " + response.getResult().getOutput());
+    }
 }

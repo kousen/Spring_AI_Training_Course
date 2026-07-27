@@ -16,6 +16,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -45,118 +46,226 @@ class ClaudeTests {
 
     @BeforeEach
     void setUp() {
-        // TODO: Initialize ChatClient using ChatClient.create(model)
-        // For more advanced features, use ChatClient.builder(model) with advisors
-    }
+        // Use builder to add default advisors
+        chatClient = ChatClient.builder(model)
+//                .defaultAdvisors(
+//                        new SimpleLoggerAdvisor(),
+//                        MessageChatMemoryAdvisor.builder(memory).build())
+                .build();
 
-    // === Lab 1: Basic Chat Interactions ===
+        // Use create for defaults
+        chatClient = ChatClient.create(model);
+    }
 
     @Test
     void simpleQuery() {
-        // TODO: Create a simple chat interaction using Claude
-        // Use chatClient.prompt().user("Why is the sky blue?").call().content()
-        // Print the response
+        String response = chatClient.prompt()
+                .advisors(new SimpleLoggerAdvisor()) // add advisor to existing chat client
+                .user("Why is the sky blue?")
+                .call()
+                .content();
+        System.out.println(response);
     }
 
     @Test
     void simpleQueryRespondLikeAPirate() {
-        // TODO: Add a system message to make the AI respond like a pirate
-        // Use .system("You are a helpful assistant that responds like a pirate.")
+        String response = chatClient.prompt()
+                .system("You are a helpful assistant that responds like a pirate.")
+                .user("Why is the sky blue?")
+                .call()
+                .content();
+        System.out.println(response);
     }
 
     @Test
     void simpleQueryWithChatResponse() {
-        // TODO: Get the full ChatResponse instead of just content
-        // Use .call().chatResponse() to access metadata like model and usage info
-        // Print model, usage, and response text
+        ChatResponse response = chatClient.prompt()
+                .user("Why is the sky blue?")
+                .call()
+                .chatResponse();
+        assertNotNull(response);
+        System.out.println("Model: " + response.getMetadata().getModel());
+        System.out.println("Usage: " + response.getMetadata().getUsage());
+        System.out.println("Response: " + response.getResult().getOutput().getText());
     }
-
-    // === Lab 3: Streaming Responses ===
 
     @Test
     void streamingChatCountDownLatch() throws InterruptedException {
-        // TODO: Implement streaming chat using CountDownLatch
-        // Use .stream().content() to get a Flux<String>
-        // Subscribe with error handling and completion signaling
+        Flux<String> output = chatClient.prompt()
+                .user("Why is the sky blue?")
+                .stream()
+                .content();
+
+        var latch = new CountDownLatch(1);
+        output.subscribe(
+                System.out::println,
+                e -> {
+                    System.out.println("Error: " + e.getMessage());
+                    latch.countDown();
+                },
+                () -> {
+                    System.out.println("Completed");
+                    latch.countDown();
+                }
+        );
+        latch.await();
     }
 
     @Test
     void streamingChatDoOnNext() {
-        // TODO: Implement streaming using reactive operators
-        // Use doOnNext, doOnError, doOnComplete, and blockLast()
+        Flux<String> output = chatClient.prompt()
+                .user("Why is the sky blue?")
+                .stream()
+                .content();
+
+        output.doOnNext(System.out::println)
+                .doOnError(e -> System.out.println("Error: " + e.getMessage()))
+                .doOnCancel(() -> System.out.println("Cancelled"))
+                .doOnComplete(() -> System.out.println("Completed"))
+                .blockLast();
     }
 
     @Test // Note: Requires the reactor-test dependency (not included in the starter)
     void streamingChatStepVerifier() {
-        // TODO: Implement streaming using StepVerifier for deterministic testing
-        // Use StepVerifier.create() for robust reactive stream testing
-        // This is the recommended approach for production code
-    }
+        Flux<String> output = chatClient.prompt()
+                .user("Why is the sky blue?")
+                .stream()
+                .content();
 
-    // === Lab 4: Structured Data Extraction ===
+        output.as(StepVerifier::create)
+                .expectSubscription()
+                .thenConsumeWhile(s -> true, System.out::println)
+                .verifyComplete();
+    }
 
     @Test
     void actorFilmsTest() {
-        // TODO: Extract structured data as ActorFilms record
-        // Use .entity(ActorFilms.class) to get structured response
-        // Print actor name and movies
+        ActorFilms actorFilms = chatClient.prompt()
+                .user("Generate the filmography for a random actor.")
+                .call()
+                .entity(ActorFilms.class);
+        assertNotNull(actorFilms);
+        System.out.println("Actor: " + actorFilms.actor());
+        actorFilms.movies().forEach(System.out::println);
     }
 
     @Test
     void listOfActorFilms() {
-        // TODO: Extract a list of ActorFilms using ParameterizedTypeReference
-        // Request filmography for multiple actors (Tom Hanks and Bill Murray)
+        List<ActorFilms> actorFilms = chatClient.prompt()
+                .user("""
+                        Generate the filmography of 5 movies
+                        for Tom Hanks and Bill Murray.""")
+                .call()
+                .entity(new ParameterizedTypeReference<>() {
+                });
+        assertNotNull(actorFilms);
+        actorFilms.forEach(actorFilm -> {
+            System.out.println("Actor: " + actorFilm.actor());
+            actorFilm.movies().forEach(System.out::println);
+        });
     }
-
-    // === Lab 5: Prompt Templates ===
 
     @Test
     void promptTemplate() {
-        // TODO: Use inline prompt template with parameters
-        // Template: "Tell me the names of 5 movies whose soundtrack was composed by {composer}"
-        // Use .param("composer", "John Williams")
+        String answer = chatClient.prompt()
+                .user(u -> u
+                        .text("""
+                                Tell me the names of 5 movies
+                                whose soundtrack was composed by {composer}""")
+                        .param("composer", "John Williams"))
+                .call()
+                .content();
+        System.out.println(answer);
     }
 
     @Test
     void promptTemplateFromResource() {
-        // TODO: Load prompt template from movie_prompt.st resource file
-        // Use .text(promptTemplate) and parameters for number and composer
+        String answer = chatClient.prompt()
+                .user(u -> u
+                        .text(promptTemplate)
+                        .param("number", "10")
+                        .param("composer", "Michael Giacchino"))
+                .call()
+                .content();
+        System.out.println(answer);
     }
-
-    // === Lab 6: Chat Memory ===
 
     @Test
     void requestsAreStateless() {
-        // TODO: Demonstrate stateless requests vs memory-enabled chat
-        // First query: "My name is Inigo Montoya. I am a fencing instructor from Florin."
-        // Second query: "Who am I?"
-        // When enabling memory, also set ChatMemory.CONVERSATION_ID on each call
-    }
+        // Use default memory advisor, then set ChatMemory.CONVERSATION_ID on each call
+//        ChatClient chatClient = ChatClient.builder(model)
+//                .defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
+//                .build();
+//
+        // Or add the chat memory advisor to each request
+        String conversationId = "inigo-demo";
+        System.out.println("Initial query:");
+        String answer1 = chatClient.prompt()
+//                .advisors(a -> a
+//                        .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+//                        .param(ChatMemory.CONVERSATION_ID, conversationId))
+                .user(u -> u.text("""
+                        My name is Inigo Montoya.
+                        I am a fencing instructor from Florin."""))
+                .call()
+                .content();
+        System.out.println(answer1);
 
-    // === Lab 7: Vision Capabilities ===
+        System.out.println("Second query:");
+        String answer2 = chatClient.prompt()
+//                .advisors(a -> a
+//                        .advisors(MessageChatMemoryAdvisor.builder(memory).build())
+//                        .param(ChatMemory.CONVERSATION_ID, conversationId))
+                .user(u -> u.text("Who am I?"))
+                .call()
+                .content();
+        System.out.println(answer2);
+    }
 
     @Test
     void localVisionTest() {
-        // TODO: Analyze a local image file with Claude
-        // Use .media(MimeTypeUtils.IMAGE_PNG, imageResource)
-        // Ask "What do you see on this picture?"
+        String response = chatClient.prompt()
+                .user(u -> u.text("What do you see on this picture?")
+                        .media(MimeTypeUtils.IMAGE_PNG, imageResource))
+                .call()
+                .content();
+        System.out.println(response);
     }
 
     @Test
     void remoteVisionTest() {
-        // TODO: Analyze a remote image from URL with Claude
-        // Use URI.create(imageUrl).toURL() with proper exception handling
+        String imageUrl = "https://upload.wikimedia.org/wikipedia/commons/9/9a/Deelerwoud%2C_09-05-2024_%28actm.%29_04.jpg";
+        String response = chatClient.prompt()
+                .user(u -> {
+                    try {
+                        u.text("What do you see on this picture?")
+                                .media(MimeTypeUtils.IMAGE_JPEG, URI.create(imageUrl).toURL());
+                    } catch (MalformedURLException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .call()
+                .content();
+        System.out.println(response);
     }
 
-    // Note: Claude API does not support image generation, so Lab 8 tests are omitted
-
-    // === Lab 10: AI Tools ===
+    // Note: Claude API does not support image generation, so imageGenerator and imageGeneratorBase64 tests are omitted
 
     @Test
     void useDateTimeTools() {
-        // TODO: Use DateTimeTools for time-related queries with Claude
-        // Ask "What day is tomorrow?" and "Set an alarm for ten minutes from now"
-        // Use .tools(new DateTimeTools())
+        String response = chatClient.prompt()
+                .user("What day is tomorrow?")
+                .tools(new DateTimeTools())
+                .call()
+                .content();
+        System.out.println(response);
+
+        String alarmTime = chatClient.prompt()
+                .user("Set an alarm for ten minutes from now")
+                .tools(new DateTimeTools())
+                .call()
+                .content();
+        System.out.println(alarmTime);
     }
 
 }
