@@ -24,7 +24,8 @@ dependencies {
 
     // Spring AI models
     implementation("org.springframework.ai:spring-ai-starter-model-openai")
-    implementation("org.springframework.ai:spring-ai-starter-model-anthropic")
+    implementation("org.springframework.ai:spring-ai-starter-model-ollama")
+    implementation("org.springframework.ai:spring-ai-starter-model-elevenlabs")
 
     // Vector Stores
     implementation("org.springframework.ai:spring-ai-vector-store-advisor")

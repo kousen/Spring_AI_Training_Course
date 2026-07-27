@@ -19,8 +19,9 @@ This repository contains a complete Spring AI training course. The code on `main
 3. **Environment Variables**:
    ```bash
    export OPENAI_API_KEY=your_openai_api_key
-   export ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional
+   export ELEVENLABS_API_KEY=your_elevenlabs_api_key  # Optional, for the ElevenLabs TTS demo
    ```
+   For the local-model exercises, install [Ollama](https://ollama.com) and pull a model (e.g. `ollama pull gemma4`) — no API key needed.
 4. **Optional: Redis** (for advanced RAG exercises):
    ```bash
    docker run -p 6379:6379 redis/redis-stack:latest
@@ -151,15 +152,15 @@ The application uses Spring profiles for different features:
 ### Using the Presentation
 
 ```bash
-# Install Slidev globally
-npm install -g @slidev/cli
+# Install dependencies and start the presentation
+npm install
+npm run dev
 
-# Start the presentation
-slidev slides.md
-
-# Export to PDF
-slidev export slides.md
+# Export to PDF locally (optional)
+npm run export
 ```
+
+A PDF of the slides is built automatically on every push to `main` and published at the rolling [`slides-latest` release](https://github.com/kousen/Spring_AI_Training_Course/releases/latest).
 
 ## License
 

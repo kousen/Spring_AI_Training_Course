@@ -57,7 +57,7 @@ The course demonstrates integration of Large Language Models (LLMs) with Spring 
 
 # Run specific test classes (students build these progressively from labs.md)
 ./gradlew test --tests OpenAiTests
-./gradlew test --tests ClaudeTests
+RUN_OLLAMA_TESTS=true ./gradlew test --tests OllamaTests
 ./gradlew test --tests RAGTests
 
 # Run with specific profiles (for advanced RAG exercises)
@@ -111,8 +111,10 @@ Set these environment variables before running the application:
 
 ```bash
 export OPENAI_API_KEY=your_openai_api_key
-export ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional, for Claude exercises
+export ELEVENLABS_API_KEY=your_elevenlabs_api_key  # Optional, for the ElevenLabs TTS demo
 ```
+
+For local-model exercises, install Ollama and pull a model (`ollama pull gemma4`); set `OLLAMA_MODEL` to override the default model name.
 
 ## Common Tasks
 
@@ -165,7 +167,7 @@ This pattern is useful for any long tutorial or exercise file to improve navigat
 
 1. **AI Model Clients**
    - `ChatClient` - Primary interface for interacting with AI models
-   - Model-specific implementations for OpenAI and Claude
+   - Model-specific implementations for OpenAI (cloud), Ollama (local), and ElevenLabs (TTS)
    - `ChatModelConfig` - Resolves multiple ChatModel ambiguity with @Primary
    - Configured in `application.properties`
 
@@ -287,7 +289,7 @@ The course follows a structured progression documented in `labs.md` with 15 comp
 Always set required environment variables before running:
 ```bash
 export OPENAI_API_KEY=your_openai_api_key
-export ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional
+export ELEVENLABS_API_KEY=your_elevenlabs_api_key  # Optional
 ```
 
 ### Redis Requirements
@@ -302,18 +304,15 @@ docker run -p 6379:6379 redis/redis-stack:latest
 The repository includes comprehensive Slidev presentation slides (`slides.md`) for training sessions:
 
 ```bash
-# Install Slidev globally
-npm install -g @slidev/cli
+# Install dependencies and start presentation mode
+npm install
+npm run dev
 
-# Start presentation mode
-slidev slides.md
-
-# Export to PDF
-slidev export slides.md
-
-# Export to static site
-slidev build slides.md
+# Export to PDF locally (optional; CI publishes the PDF automatically)
+npm run export
 ```
+
+The slides PDF is auto-built by `.github/workflows/build-slides-pdf.yml` on every push to `main` that touches `slides.md` and published to the rolling `slides-latest` GitHub release. Do not commit exported PDFs or PPTX files.
 
 ### Presentation Features
 - **15 lab progression**: Matches the complete lab sequence

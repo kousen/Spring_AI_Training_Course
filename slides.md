@@ -224,9 +224,11 @@ Spring_AI_Training_Course/
 ## Environment Setup
 
 ```bash
-# Required API keys
+# Required API key
 export OPENAI_API_KEY=your_key
-export ANTHROPIC_API_KEY=your_key
+
+# Local models: install Ollama, then
+ollama pull gemma4
 
 # Optional: Redis for advanced labs
 docker run -p 6379:6379 redis/redis-stack:latest

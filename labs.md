@@ -30,15 +30,17 @@ This series of labs will guide you through building a Spring AI application that
 1. Make sure you have the following prerequisites:
    - Java 17+
    - An IDE (IntelliJ IDEA, Eclipse, VS Code)
-   - API keys for OpenAI and/or Anthropic (Claude)
+   - An OpenAI API key
+   - [Ollama](https://ollama.com) installed locally (free, no API key) for the local-model exercises
 
 2. Set the required environment variables:
    ```bash
    export OPENAI_API_KEY=your_openai_api_key
-   export ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional, for Claude exercises
+   export ELEVENLABS_API_KEY=your_elevenlabs_api_key  # Optional, for the ElevenLabs TTS demo
+   export ELEVENLABS_VOICE_ID=your_voice_id           # Optional, defaults to a public voice
    ```
 
-3. **Model Configuration Note**: This course uses `gpt-5-nano` (OpenAI) and `claude-sonnet-4-5` (Anthropic). These models have specific requirements:
+3. **Model Configuration Note**: This course uses `gpt-5-nano` (OpenAI) plus a local model via [Ollama](https://ollama.com) (install it, then `ollama pull gemma4` or any model you like, and set `OLLAMA_MODEL` if it differs from the default in `application.properties`). Notes:
    - `gpt-5-nano` only supports `temperature=1.0` (the default value)
    - When using `ChatClient.builder()`, explicitly set temperature if needed (in Spring AI 2.0, `defaultOptions` takes the options *builder*, not a built options object):
      ```java
@@ -760,6 +762,29 @@ void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
     System.out.println("Transcription: " + response.getResult().getOutput());
 }
 ```
+
+### 9.3 Bonus: ElevenLabs Text-to-Speech
+
+Spring AI ships a starter for [ElevenLabs](https://elevenlabs.io), whose voices (including cloned ones) are considerably more natural than the basic `tts-1` output. The demo uses the *same* `TextToSpeechPrompt`/`TextToSpeechResponse` abstraction as the OpenAI test above — only the injected model changes:
+
+```java
+@Test
+void textToSpeechWithConfiguredVoice(@Autowired ElevenLabsTextToSpeechModel ttsModel) {
+    TextToSpeechPrompt prompt = new TextToSpeechPrompt("Welcome to Spring AI.");
+    TextToSpeechResponse response = ttsModel.call(prompt);
+    assertNotNull(response);
+    // response.getResult().getOutput() is the MP3 bytes
+}
+```
+
+Configuration (already in `application.properties`):
+
+```properties
+spring.ai.elevenlabs.api-key=${ELEVENLABS_API_KEY:}
+spring.ai.elevenlabs.tts.voice-id=${ELEVENLABS_VOICE_ID:21m00Tcm4TlvDq8ikWAM}
+```
+
+ElevenLabs voice IDs are **account-scoped**: a cloned voice only resolves under the API key of the account that owns it. Set `ELEVENLABS_VOICE_ID` to a voice from your own account (find IDs in the ElevenLabs voice library); the default is the public "Rachel" voice. See `ElevenLabsTests` for the complete example, including per-call options.
 
 [↑ Back to table of contents](#table-of-contents)
 
