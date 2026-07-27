@@ -42,12 +42,13 @@ else
   failures=$((failures + 1))
 fi
 
-if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
-  printf "ok   ANTHROPIC_API_KEY is set\n"
+if [ -n "${ELEVENLABS_API_KEY:-}" ]; then
+  printf "ok   ELEVENLABS_API_KEY is set\n"
 else
-  printf "skip ANTHROPIC_API_KEY is not set; Claude labs are optional\n"
+  printf "skip ELEVENLABS_API_KEY is not set; ElevenLabs TTS demo is optional\n"
 fi
 
+check_optional "Ollama (for local-model labs)" ollama
 check_optional "Docker" docker
 check_optional "npx" npx
 
