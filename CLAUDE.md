@@ -9,7 +9,7 @@ This is a **hands-on training course** for learning Spring AI through progressiv
 ### Repository Structure
 
 - **`main` branch**: Complete working implementations (single-branch course; starter code lives in the lab text)
-- **`labs.md`**: 15 progressive lab exercises with step-by-step instructions and starter code
+- **`labs.md`**: 16 progressive lab exercises with step-by-step instructions and starter code
 - **`slides.md`**: Comprehensive Slidev presentation for training sessions
 - **Tags**: `spring-ai-1.1.7` and `starter-1.1.7` preserve the final Spring AI 1.x state (including the old two-branch main/solutions layout)
 - **Dated branches** (`springai_aug2025`, etc.): snapshots of past class deliveries
@@ -251,7 +251,7 @@ This is a **hands-on training course** where students implement Spring AI functi
 - **Hands-on implementation**: Students learn by coding, not copying
 
 ### Lab Progression
-The course follows a structured progression documented in `labs.md` with 15 comprehensive labs:
+The course follows a structured progression documented in `labs.md` with 16 comprehensive labs:
 1. **Basic chat interactions** - Simple AI conversations
 2. **Request/response logging** - Debug AI interactions  
 3. **Streaming responses** - Real-time AI communication
@@ -267,6 +267,7 @@ The course follows a structured progression documented in `labs.md` with 15 comp
 13. **Vector store optimization** - Production-ready RAG with Redis
 14. **MCP client** - Connect to external tool servers
 15. **MCP server** - Create your own tool servers
+16. **Agents capstone** - Tools + memory in a loop; Embabel discussion
 
 ### Code Structure for Students
 - **Test classes**: Reference implementations of every lab; students build their own versions from labs.md
@@ -315,7 +316,7 @@ npm run export
 The slides PDF is auto-built by `.github/workflows/build-slides-pdf.yml` on every push to `main` that touches `slides.md` and published to the rolling `slides-latest` GitHub release. Do not commit exported PDFs or PPTX files.
 
 ### Presentation Features
-- **15 lab progression**: Matches the complete lab sequence
+- **16 lab progression**: Matches the complete lab sequence
 - **Interactive code examples**: Magic-move animations and progressive disclosure
 - **Provider overview**: Comprehensive list of 18+ supported AI providers
 - **Production patterns**: Error handling, testing, cost optimization

@@ -78,7 +78,7 @@ layout: two-cols
 <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?w=350&h=400&fit=crop&brightness=1.2" alt="AI and Spring" class="rounded-lg opacity-80" />
 </div>
 
-<!-- Presenter notes: Emphasize hands-on nature, 15 progressive labs -->
+<!-- Presenter notes: Emphasize hands-on nature, 16 progressive labs -->
 
 ---
 
@@ -86,7 +86,7 @@ layout: two-cols
 
 ```bash
 Spring_AI_Training_Course/
-├── labs.md             # 15 progressive lab exercises
+├── labs.md             # 16 progressive lab exercises
 ├── src/
 │   ├── main/java/      # Service implementations
 │   ├── main/resources/ # Configuration & templates
@@ -100,7 +100,7 @@ Spring_AI_Training_Course/
 - **Start**: labs.md walks you through every step
 - **Reference**: the repo contains the complete working code
 - **Learn by doing**: Implement each lab incrementally
-- **15 Labs**: From basic chat to advanced MCP servers
+- **16 Labs**: From basic chat to an agents capstone
 
 </v-clicks>
 
@@ -136,7 +136,7 @@ Spring_AI_Training_Course/
 
 - Lab 13 Redis
 - Labs 14-15 MCP
-- Agent preview
+- Lab 16 Agents
 
 </div>
 
@@ -671,6 +671,60 @@ void shouldCallTool() {
 
 ---
 
+# New in 2.0: Smarter Advisors
+
+<div class="grid grid-cols-2 gap-4">
+
+<div>
+
+## Self-Correcting Output
+
+```java
+var advisor = StructuredOutputValidationAdvisor
+    .builder()
+    .outputType(ActorFilms.class)
+    .maxRepeatAttempts(2)
+    .build();
+```
+
+<v-click>
+
+Bad JSON? The advisor sends the schema error back to the model to repair
+
+</v-click>
+
+</div>
+
+<div>
+
+## Tool Search at Scale
+
+```java
+var advisor = ToolSearchToolCallingAdvisor
+    .builder()
+    .toolIndex(new RegexToolIndex())
+    .maxResults(3)
+    .build();
+```
+
+<v-click>
+
+Model gets one *search* tool, pulls in only what each query needs — Spring reports 34-64% token savings on large tool sets
+
+</v-click>
+
+</div>
+
+</div>
+
+<!-- Presenter notes:
+- Both are Spring AI 2.0 features; see Lab 4 and Lab 10 bonus sections
+- Tool search matters most with multiple MCP servers connected (hundreds of tool definitions)
+- Tool search advisor needs a conversation id param (per-session index) and its own starter dependency
+-->
+
+---
+
 # Lab 11: Refactoring for Production
 
 ```java {1-8|10-18|20-27}
@@ -1121,6 +1175,25 @@ public class McpServerConfig {
 ````
 
 **Result**: Claude Desktop can use your Java methods as tools!
+
+---
+
+# MCP in Production: Security
+
+<v-clicks>
+
+- **STDIO transport sidesteps auth** — the client launches the server as a child process; OS process ownership *is* the trust boundary
+- **HTTP transports need real auth** — streamable HTTP servers are network services; the MCP spec prescribes **OAuth 2.1** (resource server pattern)
+- **Spring support**: [mcp-security](https://github.com/spring-ai-community/mcp-security) (Spring AI Community) integrates MCP servers with Spring Security
+- **Rule of thumb**: local dev tools → STDIO; anything shared or deployed → streamable HTTP + OAuth
+
+</v-clicks>
+
+<!-- Presenter notes:
+- This is the #1 question after any MCP demo: "how do I secure this?"
+- Demo anchor: MockHub project uses mcp-security for real-world MCP auth
+- The calculator lab uses STDIO, which is why no auth appears in the config
+-->
 
 ---
 layout: section
@@ -1583,7 +1656,7 @@ layout: section
 
 <!-- Presenter notes:
 - Students already know @Tool from Lab 10 — agents build on that
-- Embabel is pre-1.0 but actively developed by Spring's creator
+- Embabel hit 1.0.0 (2026) — but 1.0 targets Boot 3.5.x/Spring AI 1.x; Boot 4 support is on its 2.0 branch, so demo from the separate OperaGenerator repo, not this project
 - spring-ai-agent-utils requires Spring AI 2.0, which this course now uses — worth a live demo if time allows
 - Key insight: Spring AI = Servlet API, Embabel = Spring MVC (higher abstraction)
 -->

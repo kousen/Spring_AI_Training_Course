@@ -5,6 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
+import org.springframework.ai.chat.client.advisor.StructuredOutputValidationAdvisor;
+import org.springframework.ai.chat.client.advisor.toolsearch.ToolSearchToolCallingAdvisor;
+import org.springframework.ai.tool.toolsearch.index.regex.RegexToolIndex;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.image.Image;
@@ -357,6 +360,49 @@ class OpenAiTests {
                 .call()
                 .content();
         System.out.println(alarmTime);
+    }
+
+    @Test
+    void structuredOutputWithValidation() {
+        // New in Spring AI 2.0: validates the JSON response against the target
+        // schema and asks the model to repair it, up to maxRepeatAttempts times
+        var validationAdvisor = StructuredOutputValidationAdvisor.builder()
+                .outputType(ActorFilms.class)
+                .maxRepeatAttempts(2)
+                .build();
+
+        ActorFilms actorFilms = chatClient.prompt()
+                .advisors(validationAdvisor)
+                .user("Generate the filmography for a random actor.")
+                .call()
+                .entity(ActorFilms.class);
+        assertNotNull(actorFilms);
+        System.out.println("Actor: " + actorFilms.actor());
+        actorFilms.movies().forEach(System.out::println);
+    }
+
+    @Test
+    void toolSearchAcrossManyTools() {
+        // New in Spring AI 2.0: instead of sending every tool definition with
+        // every request, the model gets a single search tool and pulls in only
+        // the tools relevant to the query -- important once you have dozens of
+        // tools (or several MCP servers) registered
+        var toolSearchAdvisor = ToolSearchToolCallingAdvisor.builder()
+                .toolIndex(new RegexToolIndex())
+                .maxResults(3)
+                .build();
+
+        // The advisor keeps a per-session tool index, so it needs a
+        // conversation id in the advisor context
+        String response = chatClient.prompt()
+                .advisors(a -> a.advisors(toolSearchAdvisor)
+                        .param(ChatMemory.CONVERSATION_ID, "tool-search-demo"))
+                .tools(new DateTimeTools(), new CalculatorService())
+                .user("What is the square root of 1764?")
+                .call()
+                .content();
+        System.out.println(response);
+        assertTrue(response.contains("42"), "Expected sqrt(1764) = 42 in: " + response);
     }
 
 }

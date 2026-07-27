@@ -27,8 +27,10 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-starter-model-ollama")
     implementation("org.springframework.ai:spring-ai-starter-model-elevenlabs")
 
-    // Vector Stores
+    // Advisors
     implementation("org.springframework.ai:spring-ai-vector-store-advisor")
+    // Not managed by the Spring AI BOM; version pinned explicitly
+    implementation("org.springframework.ai:spring-ai-starter-tool-search-advisor:2.0.0")
     implementation("org.springframework.ai:spring-ai-starter-vector-store-redis")
 
     // Document Readers

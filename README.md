@@ -73,6 +73,7 @@ Follow the exercises in [labs.md](labs.md) to build Spring AI applications from 
 13. **Production RAG** - Redis vector store optimization
 14. **Model Context Protocol (MCP) Client** - Connect to external tool servers
 15. **Model Context Protocol (MCP) Server** - Create your own tool servers
+16. **Agents Capstone** - Compose tools and memory into an agent loop
 
 ## Recommended Teaching Path
 

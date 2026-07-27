@@ -23,6 +23,7 @@ This series of labs will guide you through building a Spring AI application that
 - [Lab 13: Redis Vector Store for RAG](#lab-13-redis-vector-store-for-rag)
 - [Lab 14: Model Context Protocol (MCP) - Client](#lab-14-model-context-protocol-mcp---client)
 - [Lab 15: Model Context Protocol (MCP) - Server](#lab-15-model-context-protocol-mcp---server)
+- [Lab 16: Agents - Putting It All Together](#lab-16-agents---putting-it-all-together)
 - [Conclusion](#conclusion)
 
 ## Setup
@@ -40,7 +41,7 @@ This series of labs will guide you through building a Spring AI application that
    export ELEVENLABS_VOICE_ID=your_voice_id           # Optional, defaults to a public voice
    ```
 
-3. **Model Configuration Note**: This course uses `gpt-5-nano` (OpenAI) plus a local model via [Ollama](https://ollama.com) (install it, then `ollama pull gemma4` or any model you like, and set `OLLAMA_MODEL` if it differs from the default in `application.properties`). Notes:
+3. **Model Configuration Note**: This course uses `gpt-5-nano` (OpenAI) plus a local model via [Ollama](https://ollama.com): install it, pull a model, and set `OLLAMA_MODEL` if your model name differs from the default in `application.properties`. **Classroom tip:** model downloads run from single-digit to tens of gigabytes — check the tag sizes on [ollama.com/library](https://ollama.com/library) and pull the *smallest* tag of your chosen model **before** class on conference Wi-Fi; the vision and tool-calling exercises need a model that supports those capabilities (check the model's page for `vision` and `tools` tags). Notes:
    - `gpt-5-nano` only supports `temperature=1.0` (the default value)
    - When using `ChatClient.builder()`, explicitly set temperature if needed (in Spring AI 2.0, `defaultOptions` takes the options *builder*, not a built options object):
      ```java
@@ -360,6 +361,27 @@ void listOfActorFilms() {
         System.out.println("Actor: " + actorFilm.actor());
         actorFilm.movies().forEach(System.out::println);
     });
+}
+```
+
+### Bonus: Self-Correcting Structured Output
+
+Models occasionally return JSON that doesn't match your schema. New in Spring AI 2.0, `StructuredOutputValidationAdvisor` validates the response against the target type and, on a mismatch, sends the error back to the model for repair — up to `maxRepeatAttempts` times:
+
+```java
+@Test
+void structuredOutputWithValidation() {
+    var validationAdvisor = StructuredOutputValidationAdvisor.builder()
+            .outputType(ActorFilms.class)
+            .maxRepeatAttempts(2)
+            .build();
+
+    ActorFilms actorFilms = chatClient.prompt()
+            .advisors(validationAdvisor)
+            .user("Generate the filmography for a random actor.")
+            .call()
+            .entity(ActorFilms.class);
+    assertNotNull(actorFilms);
 }
 ```
 
@@ -836,6 +858,36 @@ void useDateTimeTools() {
     System.out.println(alarmTime);
 }
 ```
+
+### Bonus: Tool Search at Scale
+
+Every registered tool definition is sent with every request — fine for two tools, wasteful and accuracy-degrading at thirty (or with several MCP servers connected). New in Spring AI 2.0, `ToolSearchToolCallingAdvisor` gives the model a single *search* tool instead; the model looks up just the tools relevant to each query. Add the dependency (not in the BOM, so the version is explicit):
+
+```kotlin
+implementation("org.springframework.ai:spring-ai-starter-tool-search-advisor:2.0.0")
+```
+
+```java
+@Test
+void toolSearchAcrossManyTools() {
+    var toolSearchAdvisor = ToolSearchToolCallingAdvisor.builder()
+            .toolIndex(new RegexToolIndex())   // Lucene and vector-store indexes also available
+            .maxResults(3)
+            .build();
+
+    // The advisor keeps a per-session tool index, so supply a conversation id
+    String response = chatClient.prompt()
+            .advisors(a -> a.advisors(toolSearchAdvisor)
+                    .param(ChatMemory.CONVERSATION_ID, "tool-search-demo"))
+            .tools(new DateTimeTools(), new CalculatorService())
+            .user("What is the square root of 1764?")
+            .call()
+            .content();
+    assertTrue(response.contains("42"));
+}
+```
+
+Spring's own benchmarks report 34-64% token savings on large tool sets with this pattern.
 
 [↑ Back to table of contents](#table-of-contents)
 
@@ -1600,6 +1652,8 @@ After changing `RAGTests` to use both profiles, run the tests with Redis running
 ## Lab 14: Model Context Protocol (MCP) - Client
 
 The Model Context Protocol (MCP) is a standardized protocol for communication between AI applications and external tools. Spring AI provides comprehensive support for both MCP clients and servers. In this lab, you'll learn how to create an MCP client that connects to external MCP servers.
+
+> **Instructor note:** the full `McpClientTests` suite spawns real npx-based MCP servers and takes roughly seven minutes of wall-clock time. In a live session, run it once as a demo (or run a single test) rather than having every student wait on it.
 
 ### 14.1 Understanding MCP
 
@@ -2400,6 +2454,52 @@ For a complete implementation, see: https://github.com/kousen/OsqueryMcpServer
 
 [↑ Back to table of contents](#table-of-contents)
 
+## Lab 16: Agents - Putting It All Together
+
+The term "agent" is often overloaded, but the building blocks are exactly what you've spent this course learning:
+
+- **Reasoning**: The LLM's ability to understand context and make decisions
+- **Memory**: Chat memory (Lab 6) allows agents to maintain conversation state
+- **Tools**: Function calling (Lab 10) lets agents take actions in the world
+- **Knowledge**: RAG (Labs 12-13) gives agents access to external information
+- **Integration**: MCP (Labs 14-15) connects agents to external systems
+
+An agent is a composition of these: an LLM that can reason about a task, remember context, retrieve information, and take actions in a loop until the goal is met. In Spring AI 2.0 that loop is a first-class piece of the framework — `ToolCallingAdvisor`, auto-registered by every `ChatClient`.
+
+### 16.1 A Minimal Agent
+
+`AgentTests` composes tools and memory into a working agent — and crucially, *the model plans the tool sequence itself*. Nothing in the prompt says "call the date tool first, then the calculator":
+
+```java
+String conversationId = "college-fund";
+ChatClient agent = ChatClient.builder(model)
+        .defaultTools(new DateTimeTools(), new CalculatorService())
+        .defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
+        .build();
+
+String plan = agent.prompt()
+        .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+        .user("""
+                I'm investing $10,000 today at 5 percent annual interest,
+                compounded monthly. What will it be worth 10 years from
+                today? Use your tools for the date and the calculation,
+                and state the final amount and target date.""")
+        .call()
+        .content();
+```
+
+Run it and watch the model chain `getCurrentDateTime` into `calculateCompoundInterest` on its own, then answer a follow-up question ("How much of that is interest?") from conversation memory without restating the problem. That loop — reason, act, observe, repeat, remember — is the whole trick.
+
+For larger agentic workflows (routing, chaining, parallelization, orchestrator-workers, evaluator-optimizer), see the [Effective Agents](https://docs.spring.io/spring-ai/reference/api/effective-agents.html) section of the Spring AI documentation. The Lab 4 and Lab 10 bonus sections (`StructuredOutputValidationAdvisor`, `ToolSearchToolCallingAdvisor`) are the same idea applied to reliability and scale.
+
+### 16.2 Higher Abstractions: Embabel
+
+If Spring AI's ChatClient is the "Servlet API" of agents, [Embabel](https://github.com/embabel/embabel-agent) — created by Rod Johnson, of Spring itself — aims to be the "Spring MVC": a framework *on top of* Spring AI where you declare `@Agent`, `@Goal`, and `@Action` types and the framework plans the execution order using Goal-Oriented Action Planning (a technique borrowed from game AI). Embabel reached 1.0.0 in 2026.
+
+One caveat worth teaching in itself: as of mid-2026, Embabel 1.0 targets Spring Boot 3.5.x / Spring AI 1.x, and its Spring Boot 4 / Spring AI 2.0 support is in progress on its 2.0 branch — so it can't be added to this project yet, and the instructor demo uses a separate repository. Major platform upgrades ripple through an ecosystem over months; check [Embabel's releases](https://github.com/embabel/embabel-agent/releases) for current compatibility.
+
+[↑ Back to table of contents](#table-of-contents)
+
 ## Conclusion
 
 Congratulations! You've completed a comprehensive tour of Spring AI's capabilities. You've learned how to:
@@ -2422,23 +2522,4 @@ Congratulations! You've completed a comprehensive tour of Spring AI's capabiliti
 
 These skills provide a solid foundation for building AI-powered applications using the Spring ecosystem.
 
-### A Note on AI Agents
-
-You may have noticed we haven't explicitly discussed "AI agents" in this course. That's intentional - the term "agent" is often overloaded and can mean different things to different people. However, the building blocks you've learned are exactly what agents are composed of:
-
-- **Reasoning**: The LLM's ability to understand context and make decisions
-- **Memory**: Chat memory (Lab 6) allows agents to maintain conversation state
-- **Tools**: Function calling (Lab 10) lets agents take actions in the world
-- **Knowledge**: RAG (Labs 12-13) gives agents access to external information
-- **Integration**: MCP (Labs 14-15) connects agents to external systems
-
-An "agent" is simply a composition of these capabilities - an LLM that can reason about a task, remember context, retrieve relevant information, and take actions to accomplish goals. The patterns you've learned (prompt engineering, structured output, advisors, tools) are the primitives from which agents are built.
-
-Spring AI provides additional support for agentic workflows including:
-- **Routing**: Direct input to specialized handlers based on content
-- **Chaining**: Sequential processing through multiple prompts
-- **Parallelization**: Concurrent processing of independent tasks
-- **Orchestrator-Workers**: Central coordinator delegating to specialized workers
-- **Evaluator-Optimizer**: Iterative refinement loops
-
-For more on these patterns, see the [Effective Agents](https://docs.spring.io/spring-ai/reference/api/effective-agents.html) section of the Spring AI documentation.
+Lab 16 showed that "agents" are not a separate technology — they're the composition of everything above, with the tool-calling loop Spring AI 2.0 builds into every ChatClient.

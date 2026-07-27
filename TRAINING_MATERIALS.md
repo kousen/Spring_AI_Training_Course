@@ -4,7 +4,7 @@ This repository includes comprehensive Spring AI training materials:
 
 ## Core Materials
 - **`slides.md`** - Interactive Slidev presentation (29KB)
-- **`labs.md`** - 15 progressive lab exercises
+- **`labs.md`** - 16 progressive lab exercises
 - **`README.md`** - Complete setup and usage guide
 - **`CLAUDE.md`** - Developer guidance and course structure
 
