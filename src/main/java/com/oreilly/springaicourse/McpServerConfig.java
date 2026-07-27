@@ -42,7 +42,7 @@ public class McpServerConfig {
             System.out.println("\nConnect to this server using:");
             System.out.println("  • Claude Desktop MCP configuration");
             System.out.println("  • STDIO transport mode");
-            System.out.println("  • SSE transport mode (uncomment config in properties)");
+            System.out.println("  • Streamable HTTP transport mode (uncomment config in properties)");
             System.out.println("========================\n");
         };
     }
