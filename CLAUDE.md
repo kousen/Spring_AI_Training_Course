@@ -8,14 +8,13 @@ This is a **hands-on training course** for learning Spring AI through progressiv
 
 ### Repository Structure
 
-- **`main` branch**: Starter code with TODO-guided exercises for students
-- **`solutions` branch**: Complete working implementations for reference
-- **`labs.md`**: 15 progressive lab exercises with step-by-step instructions
+- **`main` branch**: Complete working implementations (single-branch course; starter code lives in the lab text)
+- **`labs.md`**: 15 progressive lab exercises with step-by-step instructions and starter code
 - **`slides.md`**: Comprehensive Slidev presentation for training sessions
-- **Test classes**: Contain TODO comments guiding students through implementation
-- **Service classes**: Skeleton implementations with TODO instructions
+- **Tags**: `spring-ai-1.1.7` and `starter-1.1.7` preserve the final Spring AI 1.x state (including the old two-branch main/solutions layout)
+- **Dated branches** (`springai_aug2025`, etc.): snapshots of past class deliveries
 
-The course demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 1.1.7), covering:
+The course demonstrates integration of Large Language Models (LLMs) with Spring applications using the Spring AI library (version 2.0.0 on Spring Boot 4.1), covering:
 
 - Text generation and chat capabilities
 - Structured data extraction  
@@ -53,10 +52,10 @@ The course demonstrates integration of Large Language Models (LLMs) with Spring 
 ### Testing
 
 ```bash
-# Run all tests (many will be empty TODO stubs in main branch)
+# Run all tests
 ./gradlew test
 
-# Run specific test classes (students implement these progressively)
+# Run specific test classes (students build these progressively from labs.md)
 ./gradlew test --tests OpenAiTests
 ./gradlew test --tests ClaudeTests
 ./gradlew test --tests RAGTests
@@ -66,11 +65,7 @@ The course demonstrates integration of Large Language Models (LLMs) with Spring 
 
 # Run MCP tests (note: may fail when run together due to profile conflicts)
 ./gradlew test --tests McpServerTests
-./gradlew test --tests McpClientTests
-
-# To see working tests, switch to solutions branch
-git checkout solutions
-./gradlew test
+RUN_MCP_CLIENT_TESTS=true ./gradlew test --tests McpClientTests
 ```
 
 ### Redis Setup (for RAG with Redis vector store)
@@ -102,35 +97,13 @@ gh issue close <issue-number>
 
 This workflow ensures proper documentation and project tracking. Don't forget to close issues upon completion!
 
-## CRITICAL: Branch Management Guidelines
+## Branch Management
 
-**⚠️ NEVER merge main branch into solutions branch without careful review!**
+This is a **single-branch course**: `main` holds the complete working implementations, and starter code lives in the lab text in `labs.md`. There is no separate solutions branch to keep in sync.
 
-### Branch Purposes
-- **`main` branch**: Starter code with TODO stubs for students
-- **`solutions` branch**: Complete working implementations for reference
-
-### Safe Merge Practices
-1. **Before any merge**: Always check target branch has complete implementations
-2. **Use selective merging**: Cherry-pick specific commits rather than full merges
-3. **Documentation-only merges**: Only merge documentation/config changes, never test code
-4. **Verify after merge**: Run tests to ensure solutions still work
-
-### Emergency Recovery
-If solutions are accidentally overwritten:
-```bash
-# Find the last good commit with complete implementations
-git log --oneline solutions --grep="complete\|implement\|working"
-
-# Restore specific files from earlier commit
-git checkout <good-commit-hash> -- src/test/java/com/oreilly/springaicourse/
-git checkout <good-commit-hash> -- src/main/java/com/oreilly/springaicourse/
-
-# Commit the restoration
-git commit -m "Restore complete implementations from backup"
-```
-
-**Remember**: Solutions branch should NEVER have TODO comments in test methods!
+- Test methods on `main` should never contain TODO stubs — they ARE the reference implementations
+- Before each class delivery, create a dated snapshot branch (e.g. `springai_oct2026`) so the delivered state is preserved
+- The retired two-branch layout is preserved at tags `starter-1.1.7` (TODO stubs) and `spring-ai-1.1.7` (solutions)
 
 ## Required Environment Variables
 
@@ -252,7 +225,7 @@ The project includes comprehensive MCP support for both client and server scenar
 ### MCP Server
 - **CalculatorService**: Exposes mathematical operations as tools via @Tool annotations
 - **Auto-discovery**: Spring AI automatically discovers @Tool annotated methods
-- **Multiple transports**: Supports both STDIO and SSE (Server-Sent Events)
+- **Multiple transports**: Supports STDIO and streamable HTTP (the MCP default since the 2025-11-25 spec)
 - **Claude Desktop integration**: Ready for use with Claude Desktop MCP configuration
 
 ### MCP Client  
@@ -271,8 +244,7 @@ The project includes comprehensive MCP support for both client and server scenar
 This is a **hands-on training course** where students implement Spring AI functionality progressively:
 
 ### Learning Approach
-- **Main branch**: Students start here with TODO-guided starter code
-- **Solutions branch**: Complete implementations for reference
+- **Single branch**: `main` holds the working implementations; starter code is embedded in labs.md
 - **Progressive labs**: Each lab builds on previous knowledge
 - **Hands-on implementation**: Students learn by coding, not copying
 
@@ -295,10 +267,8 @@ The course follows a structured progression documented in `labs.md` with 15 comp
 15. **MCP server** - Create your own tool servers
 
 ### Code Structure for Students
-- **Test classes**: Contain TODO comments guiding implementation
-- **Service classes**: Skeleton code with clear instructions
+- **Test classes**: Reference implementations of every lab; students build their own versions from labs.md
 - **Working examples**: DateTimeTools, ActorFilms (students use these)
-- **Reference implementations**: Available in solutions branch
 
 ## Important Notes
 
@@ -350,11 +320,10 @@ slidev build slides.md
 - **Interactive code examples**: Magic-move animations and progressive disclosure
 - **Provider overview**: Comprehensive list of 18+ supported AI providers
 - **Production patterns**: Error handling, testing, cost optimization
-- **Modern practices**: Updated with `@MockitoBean` and Spring Boot 3.5.14 patterns
+- **Modern practices**: Updated with `@MockitoBean` and Spring Boot 4.1 patterns
 - **Proper Slidev structure**: Images in `public/images/` for correct rendering
 
 ### Training Session Structure
 - **Duration**: 3-4 hours with hands-on exercises
 - **Format**: Progressive lab implementation with slide support
 - **Materials**: Slides for concepts, labs.md for step-by-step implementation
-- **Branches**: Start with `main` (TODO stubs), reference `solutions` when needed

@@ -2,7 +2,7 @@
 
 This series of labs will guide you through building a Spring AI application that uses various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
 
-> **Note:** This project uses Spring Boot 3.5.14 and Spring AI 1.1.7. The course intentionally stays on the stable 1.1.x line; Spring AI 2.0 milestone and release-candidate builds are preview material and are not used in these labs.
+> **Note:** This project uses Spring Boot 4.1.0 and Spring AI 2.0.0. The repository contains the complete working implementation of every lab; use these instructions (and the starter code in them) to build each feature yourself.
 
 ## Table of Contents
 
@@ -40,10 +40,10 @@ This series of labs will guide you through building a Spring AI application that
 
 3. **Model Configuration Note**: This course uses `gpt-5-nano` (OpenAI) and `claude-sonnet-4-5` (Anthropic). These models have specific requirements:
    - `gpt-5-nano` only supports `temperature=1.0` (the default value)
-   - When using `ChatClient.builder()`, explicitly set temperature if needed:
+   - When using `ChatClient.builder()`, explicitly set temperature if needed (in Spring AI 2.0, `defaultOptions` takes the options *builder*, not a built options object):
      ```java
      ChatClient chatClient = ChatClient.builder(model)
-         .defaultOptions(ChatOptions.builder().temperature(1.0).build())
+         .defaultOptions(ChatOptions.builder().temperature(1.0))
          .build();
      ```
 
@@ -51,8 +51,8 @@ This series of labs will guide you through building a Spring AI application that
    ```properties
    # OpenAI Configuration
    spring.ai.openai.api-key=${OPENAI_API_KEY}
-   spring.ai.openai.chat.options.model=gpt-5-nano
-   spring.ai.openai.chat.options.temperature=1.0
+   spring.ai.openai.chat.model=gpt-5-nano
+   spring.ai.openai.chat.temperature=1.0
    ```
 
 5. Check your environment and run a fast verification:
@@ -710,8 +710,8 @@ void textToSpeech(@Autowired OpenAiAudioSpeechModel speechModel) {
     String text = "Welcome to Spring AI, a powerful framework for integrating AI into your Spring applications.";
 
     OpenAiAudioSpeechOptions options = OpenAiAudioSpeechOptions.builder()
-            .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
-            .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
+            .voice(OpenAiAudioSpeechOptions.Voice.ALLOY)
+            .responseFormat(OpenAiAudioSpeechOptions.AudioResponseFormat.MP3)
             .speed(1.0)
             .build();
 
@@ -751,7 +751,7 @@ void speechToText(@Autowired OpenAiAudioTranscriptionModel transcriptionModel) {
             .language("en")
             .prompt("Transcribe this audio file.")
             .temperature(0.0f)
-            .responseFormat(OpenAiAudioApi.TranscriptResponseFormat.TEXT)
+            .responseFormat(AudioResponseFormat.TEXT)  // com.openai.models.audio.AudioResponseFormat
             .build();
 
     AudioTranscriptionPrompt prompt = new AudioTranscriptionPrompt(sampleAudioResource, options);
@@ -898,7 +898,7 @@ dependencies {
     // Existing dependencies...
 
     // Vector store for RAG implementation
-    implementation("org.springframework.ai:spring-ai-advisors-vector-store")
+    implementation("org.springframework.ai:spring-ai-vector-store-advisor")
 
     // Document readers for different content types
     implementation("org.springframework.ai:spring-ai-jsoup-document-reader") // For HTML/web content
@@ -918,7 +918,7 @@ public class AppConfig {
     private static final String SPRING_BOOT_URL = "https://en.wikipedia.org/wiki/Spring_Boot";
 
     // Use the default token-based text splitter
-    private final TextSplitter splitter = new TokenTextSplitter();
+    private final TextSplitter splitter = TokenTextSplitter.builder().build();
 
     @Bean
     @Profile("rag") // Only activate when the 'rag' profile is enabled
@@ -947,7 +947,7 @@ Make sure your application.properties file is configured properly:
 
 ```properties
 # Use the smaller embedding model for better performance
-spring.ai.openai.embedding.options.model=text-embedding-3-small
+spring.ai.openai.embedding.model=text-embedding-3-small
 
 # Reduce logging levels for cleaner output
 logging.level.org.springframework.ai=info
@@ -1423,7 +1423,7 @@ public class AppConfig {
     private static final String FEUD_URL = "https://en.wikipedia.org/wiki/Drake%E2%80%93Kendrick_Lamar_feud";
     private static final String SPRING_URL = "https://en.wikipedia.org/wiki/Spring_Framework";
 
-    private final TextSplitter splitter = new TokenTextSplitter();
+    private final TextSplitter splitter = TokenTextSplitter.builder().build();
 
     @Value("classpath:/pdfs/WEF_Future_of_Jobs_Report_2025.pdf")
     private Resource jobsReport2025;
@@ -1580,7 +1580,7 @@ The Model Context Protocol (MCP) is a standardized protocol for communication be
 
 MCP enables:
 - Standardized tool exposure and discovery
-- Multiple transport mechanisms (STDIO, SSE, HTTP)
+- Multiple transport mechanisms (STDIO and streamable HTTP, the default HTTP transport since the 2025-11-25 MCP spec)
 - Dynamic tool registration and updates
 - Secure, structured communication between AI systems and tools
 
@@ -1640,9 +1640,10 @@ public class McpClientTests {
         }
 
         // Create a chat client with MCP tools if available
+        // (Spring AI 2.0: defaultTools() accepts the ToolCallbackProvider directly)
         if (mcpTools != null && mcpTools.length > 0) {
             chatClient = ChatClient.builder(chatModel)
-                    .defaultToolCallbacks(mcpTools)
+                    .defaultTools(toolCallbackProvider)
                     .build();
         } else {
             chatClient = ChatClient.builder(chatModel).build();
@@ -1840,7 +1841,7 @@ dependencies {
     // MCP Server support (choose one based on your needs)
     implementation("org.springframework.ai:spring-ai-starter-mcp-server")  // For STDIO
     // OR
-    implementation("org.springframework.ai:spring-ai-starter-mcp-server-webmvc")  // For SSE with Spring MVC
+    implementation("org.springframework.ai:spring-ai-starter-mcp-server-webmvc")  // For streamable HTTP with Spring MVC
 }
 ```
 
@@ -1940,7 +1941,7 @@ public class McpServerConfig {
             System.out.println("\nConnect to this server using:");
             System.out.println("  • Claude Desktop MCP configuration");
             System.out.println("  • STDIO transport mode");
-            System.out.println("  • SSE transport mode (uncomment config in properties)");
+            System.out.println("  • Streamable HTTP transport mode (uncomment config in properties)");
             System.out.println("========================\n");
         };
     }
@@ -1964,9 +1965,10 @@ spring.ai.mcp.server.stdio=true
 spring.main.web-application-type=none
 logging.pattern.console=
 
-# For SSE mode (HTTP-based)
+# For streamable HTTP mode (the default MCP HTTP transport)
 # spring.ai.mcp.server.stdio=false
-# spring.ai.mcp.server.sse-message-endpoint=/mcp/messages
+# spring.ai.mcp.server.protocol=streamable
+# spring.ai.mcp.server.streamable-http.mcp-endpoint=/mcp
 ```
 
 ### 15.4 Testing Your MCP Server

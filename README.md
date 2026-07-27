@@ -4,19 +4,18 @@ A comprehensive hands-on training course for learning Spring AI through progress
 
 ## Getting Started
 
-This repository contains a complete Spring AI training course with both starter code and working implementations. Students build functionality incrementally through guided TODO exercises.
+This repository contains a complete Spring AI training course. The code on `main` is the full working implementation; students build each feature themselves by following the step-by-step instructions (including starter code) in [labs.md](labs.md).
 
 ### Repository Structure
 
-- **`main` branch**: Starter code with TODO-guided exercises
-- **`solutions` branch**: Complete implementations for reference
-- **`labs.md`**: Step-by-step lab instructions and exercises
+- **`main` branch**: Complete working implementations
+- **`labs.md`**: Step-by-step lab instructions, starter code, and exercises
 - **`slides.md`**: Comprehensive Slidev presentation for training
 
 ### Prerequisites
 
 1. **Java 17+**
-2. **Spring Boot 3.5.14** with **Spring AI 1.1.7**
+2. **Spring Boot 4.1.0** with **Spring AI 2.0.0**
 3. **Environment Variables**:
    ```bash
    export OPENAI_API_KEY=your_openai_api_key
@@ -30,7 +29,7 @@ This repository contains a complete Spring AI training course with both starter 
 ### Quick Start
 
 ```bash
-# Clone the repository (main branch contains starter code)
+# Clone the repository
 git clone https://github.com/kousen/Spring_AI_Training_Course.git
 cd Spring_AI_Training_Course
 
@@ -52,9 +51,6 @@ RUN_MULTIMODAL_TESTS=true ./gradlew test --tests OpenAiTests --tests AudioTests
 
 # Optional RAG evaluation pass: adds extra model calls for evaluator checks
 RUN_RAG_EVALUATION_TESTS=true ./gradlew test --tests RAGTests
-
-# View complete solutions (when needed)
-git checkout solutions
 ```
 
 ## Course Structure
@@ -85,14 +81,14 @@ Use Labs 7-9 as demos or short exercises depending on API access and time. Use L
 
 ## Learning Approach
 
-- **Start with TODOs**: Each test class contains guided TODO comments
+- **Follow the labs**: Each lab in [labs.md](labs.md) walks through building a feature, with starter code included in the lab text
 - **Build incrementally**: Complete one lab before moving to the next
-- **Reference solutions**: Check the `solutions` branch when needed
+- **Reference implementations**: The code in this repository is the finished version of every lab
 - **Hands-on learning**: Learn by implementing, not copying
 
 ## Version Policy
 
-This course is pinned to the stable Spring AI 1.1.x line for Spring Boot 3.5.x compatibility. Spring AI 2.0 milestone and release-candidate builds are preview material and are not used in the Tuesday delivery labs.
+This course tracks the current Spring AI 2.0.x GA line on Spring Boot 4.x. Earlier deliveries on Spring AI 1.x are preserved as tags (`spring-ai-1.1.7`, `starter-1.1.7`) and dated `springai_*` branches.
 
 ## Key Features & Technologies
 
@@ -113,7 +109,7 @@ This course is pinned to the stable Spring AI 1.1.x line for Spring Boot 3.5.x c
 - **Model Context Protocol (MCP)**:
   - **MCP Client**: Connect to external tool servers (filesystem, search, etc.)
   - **MCP Server**: Expose your own tools to AI clients like Claude Desktop
-  - STDIO and SSE transport support
+  - STDIO and streamable HTTP transport support
   - Auto-discovery of @Tool annotated methods
 
 ### Production-Oriented Patterns
@@ -150,7 +146,6 @@ The application uses Spring profiles for different features:
 
 - **Lab Instructions**: See [labs.md](labs.md) for step-by-step exercises
 - **Presentation Slides**: Use [slides.md](slides.md) with Slidev for training sessions
-- **Complete Examples**: Switch to `solutions` branch for working implementations
 - **Issues**: Report problems via GitHub issues
 
 ### Using the Presentation

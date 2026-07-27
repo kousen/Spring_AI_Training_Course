@@ -97,8 +97,8 @@ Spring_AI_Training_Course/
 
 <v-clicks>
 
-- **Start**: `main` branch with guided TODOs
-- **Reference**: `solutions` branch when needed
+- **Start**: labs.md walks you through every step
+- **Reference**: the repo contains the complete working code
 - **Learn by doing**: Implement each lab incrementally
 - **15 Labs**: From basic chat to advanced MCP servers
 
@@ -210,9 +210,9 @@ Spring_AI_Training_Course/
 <v-clicks>
 
 - **Java 17+**
-- **Spring Boot 3.5.14**
-- **Spring AI 1.1.7**
-- **Git** for branch management
+- **Spring Boot 4.1.0**
+- **Spring AI 2.0.0**
+- **Git**
 - **Redis** (optional, for advanced RAG)
 
 </v-clicks>
@@ -569,8 +569,8 @@ public class SpeechService {
 
     public byte[] generateSpeech(String text) {
         var options = OpenAiAudioSpeechOptions.builder()
-            .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
-            .responseFormat(OpenAiAudioApi.SpeechRequest
+            .voice(OpenAiAudioSpeechOptions.Voice.ALLOY)
+            .responseFormat(OpenAiAudioSpeechOptions
                 .AudioResponseFormat.MP3)
             .speed(1.0)
             .build();
@@ -876,7 +876,7 @@ public class DocumentProcessor {
             new PagePdfDocumentReader("classpath:/docs/spring-ai-reference.pdf");
         
         // Split into chunks
-        TextSplitter splitter = new TokenTextSplitter();
+        TextSplitter splitter = TokenTextSplitter.builder().build();
         List<Document> documents = splitter.apply(pdfReader.get());
         
         // Store as vectors
@@ -1570,7 +1570,7 @@ layout: section
 - **[Embabel](https://github.com/embabel/embabel-agent)** — Rod Johnson's agent framework *on top of* Spring AI
   - `@Agent`, `@Goal`, `@Action` annotations
   - Goal-Oriented Action Planning (from game AI)
-- **[spring-ai-agent-utils](https://github.com/spring-ai-community/spring-ai-agent-utils)** — Claude Code-style tools for Spring AI (requires 2.0)
+- **[spring-ai-agent-utils](https://github.com/spring-ai-community/spring-ai-agent-utils)** — Claude Code-style tools for Spring AI (works with this course's 2.0 setup)
 - **[Spring AI Agents/Bench](https://spring.io/blog/2025/10/28/agents-and-benchmarks/)** — benchmarking & evaluation
 
 </v-clicks>
@@ -1582,7 +1582,7 @@ layout: section
 <!-- Presenter notes:
 - Students already know @Tool from Lab 10 — agents build on that
 - Embabel is pre-1.0 but actively developed by Spring's creator
-- spring-ai-agent-utils requires Spring AI 2.0, so it is preview material for this 1.1.7 course
+- spring-ai-agent-utils requires Spring AI 2.0, which this course now uses — worth a live demo if time allows
 - Key insight: Spring AI = Servlet API, Embabel = Spring MVC (higher abstraction)
 -->
 
@@ -1644,7 +1644,7 @@ public class WriteAndReviewAgent {
 - Demo: switch to OperaGenerator repo, embabel branch, and walk through it
 - Also has a langchain4j-agentic branch for comparison
 - Dependency: com.embabel.agent:embabel-agent-starter-shell
-- Compatible with Spring Boot 3.5.14, needs OPENAI_API_KEY
+- Needs OPENAI_API_KEY; verify Embabel's current Spring Boot version before the demo (OperaGenerator repo was built against Boot 3.5.x)
 -->
 
 ---
@@ -1674,5 +1674,5 @@ public class WriteAndReviewAgent {
 - Emphasize hands-on nature of course
 - Encourage students to continue with advanced topics
 - Point to repository for continued learning
-- Mention that solutions branch has all working code
+- Mention that the repo contains all working code; labs.md has the step-by-step path
 -->
