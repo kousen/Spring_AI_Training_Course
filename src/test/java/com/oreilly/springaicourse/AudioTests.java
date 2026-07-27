@@ -6,8 +6,8 @@ import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
 import org.springframework.ai.audio.tts.TextToSpeechPrompt;
 import org.springframework.ai.audio.tts.TextToSpeechResponse;
+import com.openai.models.audio.AudioResponseFormat;
 import org.springframework.ai.openai.*;
-import org.springframework.ai.openai.api.OpenAiAudioApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,8 +34,8 @@ class AudioTests {
         String text = "Welcome to Spring AI, a powerful framework for integrating AI into your Spring applications.";
         
         var options = OpenAiAudioSpeechOptions.builder()
-                .voice(OpenAiAudioApi.SpeechRequest.Voice.ALLOY)
-                .responseFormat(OpenAiAudioApi.SpeechRequest.AudioResponseFormat.MP3)
+                .voice(OpenAiAudioSpeechOptions.Voice.ALLOY)
+                .responseFormat(OpenAiAudioSpeechOptions.AudioResponseFormat.MP3)
                 .speed(1.0)
                 .build();
         
@@ -61,7 +61,7 @@ class AudioTests {
                 .language("en")
                 .prompt("Transcribe this audio file.")
                 .temperature(0.0f)
-                .responseFormat(OpenAiAudioApi.TranscriptResponseFormat.TEXT)
+                .responseFormat(AudioResponseFormat.TEXT)
                 .build();
 
         var prompt = new AudioTranscriptionPrompt(sampleAudioResource, options);

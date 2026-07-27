@@ -50,7 +50,7 @@ public class DocumentReaderTests {
         System.out.println(documents.size() + " original documents before splitting");
 
         // Split the content into chunks
-        var splitter = new TokenTextSplitter();
+        var splitter = TokenTextSplitter.builder().build();
         List<Document> docs = splitter.split(documents);
         System.out.println(docs.size() + " documents after splitting");
     }

@@ -20,7 +20,7 @@ import org.springframework.core.io.Resource;
 
 @Configuration
 public class AppConfig {
-    private final TextSplitter splitter = new TokenTextSplitter();
+    private final TextSplitter splitter = TokenTextSplitter.builder().build();
 
     @Value("classpath:/rag/spring-ai-course.md")
     private Resource springAiCourseNotes;

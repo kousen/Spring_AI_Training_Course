@@ -50,12 +50,13 @@ public class McpClientTests {
 
         // Create a chat client with the specified model and MCP tools if available
         // Set temperature to 1.0 as required by gpt-5-nano
-        ChatOptions chatOptions = ChatOptions.builder().temperature(1.0).build();
+        // Spring AI 2.0: ChatClient takes the options builder, not built options
+        ChatOptions.Builder chatOptions = ChatOptions.builder().temperature(1.0);
 
         if (mcpTools != null && mcpTools.length > 0) {
             chatClient = ChatClient.builder(chatModel)
                     .defaultOptions(chatOptions)
-                    .defaultToolCallbacks(mcpTools)
+                    .defaultTools(toolCallbackProvider)
                     .build();
         } else {
             chatClient = ChatClient.builder(chatModel)
