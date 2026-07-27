@@ -7,5 +7,10 @@
     "@slidev/cli": "^52.0.0",
     "@slidev/theme-seriph": "^0.25.0",
     "playwright-chromium": "^1.54.1"
+  },
+  "overrides": {
+    "monaco-editor": {
+      "dompurify": "^3.4.12"
+    }
   }
 }
