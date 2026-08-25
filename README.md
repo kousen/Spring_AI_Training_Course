@@ -15,7 +15,7 @@ This repository contains a complete Spring AI training course. The code on `main
 ### Prerequisites
 
 1. **Java 17+**
-2. **Spring Boot 4.1.0** with **Spring AI 2.0.0**
+2. **Spring Boot 4.1.1** with **Spring AI 2.0.1**
 3. **Environment Variables**:
    ```bash
    export OPENAI_API_KEY=your_openai_api_key

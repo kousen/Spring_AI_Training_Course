@@ -210,8 +210,8 @@ Spring_AI_Training_Course/
 <v-clicks>
 
 - **Java 17+**
-- **Spring Boot 4.1.0**
-- **Spring AI 2.0.0**
+- **Spring Boot 4.1.1**
+- **Spring AI 2.0.1**
 - **Git**
 - **Redis** (optional, for advanced RAG)
 
@@ -1381,7 +1381,7 @@ class ChatServiceTest {
 class RAGIntegrationTest {
     
     @Container
-    static RedisContainer redis = new RedisContainer("redis:7.0")
+    static RedisContainer redis = new RedisContainer("redis:8")
         .withExposedPorts(6379);
         
     @Test
@@ -1656,7 +1656,7 @@ layout: section
 
 <!-- Presenter notes:
 - Students already know @Tool from Lab 10 — agents build on that
-- Embabel hit 1.0.0 (2026) — but 1.0 targets Boot 3.5.x/Spring AI 1.x; Boot 4 support is on its 2.0 branch, so demo from the separate OperaGenerator repo, not this project
+- Embabel 1.5.0 (Aug 2026) completed the Spring AI 2.0 GA migration; 1.5.1+ works with Boot 4 directly — the old "1.x only" caveat is resolved. Demo still uses the OperaGenerator repo (see Lab 16 notes)
 - spring-ai-agent-utils requires Spring AI 2.0, which this course now uses — worth a live demo if time allows
 - Key insight: Spring AI = Servlet API, Embabel = Spring MVC (higher abstraction)
 -->
@@ -1719,7 +1719,7 @@ public class WriteAndReviewAgent {
 - Demo: switch to OperaGenerator repo, embabel branch, and walk through it
 - Also has a langchain4j-agentic branch for comparison
 - Dependency: com.embabel.agent:embabel-agent-starter-shell
-- Needs OPENAI_API_KEY; verify Embabel's current Spring Boot version before the demo (OperaGenerator repo was built against Boot 3.5.x)
+- Needs OPENAI_API_KEY; Embabel 1.5.1+ supports Boot 4/Spring AI 2.0 in the main line — check whether the OperaGenerator repo's embabel branch has been bumped before the demo
 -->
 
 ---

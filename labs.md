@@ -2,7 +2,7 @@
 
 This series of labs will guide you through building a Spring AI application that uses various capabilities of large language models via the Spring AI abstraction layer. By the end of these exercises, you'll have hands-on experience with text generation, structured data extraction, prompt templates, chat memory, vision capabilities, and more.
 
-> **Note:** This project uses Spring Boot 4.1.0 and Spring AI 2.0.0. The repository contains the complete working implementation of every lab; use these instructions (and the starter code in them) to build each feature yourself.
+> **Note:** This project uses Spring Boot 4.1.1 and Spring AI 2.0.1. The repository contains the complete working implementation of every lab; use these instructions (and the starter code in them) to build each feature yourself.
 
 ## Table of Contents
 
@@ -861,10 +861,10 @@ void useDateTimeTools() {
 
 ### Bonus: Tool Search at Scale
 
-Every registered tool definition is sent with every request — fine for two tools, wasteful and accuracy-degrading at thirty (or with several MCP servers connected). New in Spring AI 2.0, `ToolSearchToolCallingAdvisor` gives the model a single *search* tool instead; the model looks up just the tools relevant to each query. Add the dependency (not in the BOM, so the version is explicit):
+Every registered tool definition is sent with every request — fine for two tools, wasteful and accuracy-degrading at thirty (or with several MCP servers connected). New in Spring AI 2.0, `ToolSearchToolCallingAdvisor` gives the model a single *search* tool instead; the model looks up just the tools relevant to each query. Add the dependency (it joined the Spring AI BOM in 2.0.1, so no explicit version — one release earlier it needed a pin, a nice example of how fast this ecosystem moves):
 
 ```kotlin
-implementation("org.springframework.ai:spring-ai-starter-tool-search-advisor:2.0.0")
+implementation("org.springframework.ai:spring-ai-starter-tool-search-advisor")
 ```
 
 ```java
@@ -2496,7 +2496,7 @@ For larger agentic workflows (routing, chaining, parallelization, orchestrator-w
 
 If Spring AI's ChatClient is the "Servlet API" of agents, [Embabel](https://github.com/embabel/embabel-agent) — created by Rod Johnson, of Spring itself — aims to be the "Spring MVC": a framework *on top of* Spring AI where you declare `@Agent`, `@Goal`, and `@Action` types and the framework plans the execution order using Goal-Oriented Action Planning (a technique borrowed from game AI). Embabel reached 1.0.0 in 2026.
 
-One caveat worth teaching in itself: as of mid-2026, Embabel 1.0 targets Spring Boot 3.5.x / Spring AI 1.x, and its Spring Boot 4 / Spring AI 2.0 support is in progress on its 2.0 branch — so it can't be added to this project yet, and the instructor demo uses a separate repository. Major platform upgrades ripple through an ecosystem over months; check [Embabel's releases](https://github.com/embabel/embabel-agent/releases) for current compatibility.
+A version story worth teaching in itself: when Spring AI 2.0 shipped, Embabel 1.0 still targeted Spring Boot 3.5.x / Spring AI 1.x, and Boot 4 support lived on a side branch — for months this framework *couldn't* be used with the platform this course runs on. Embabel 1.5.0 (August 2026) completed the Spring AI 2.0 GA migration in the main line, so current releases (1.5.1+) work with Spring Boot 4 / Spring AI 2.0 directly. Major platform upgrades ripple through an ecosystem over months, then resolve; check [Embabel's releases](https://github.com/embabel/embabel-agent/releases) for the current state.
 
 [↑ Back to table of contents](#table-of-contents)
 

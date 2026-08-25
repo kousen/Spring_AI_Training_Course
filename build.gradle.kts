@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.1.0"
+    id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -17,7 +17,7 @@ repositories {
     mavenCentral()
 }
 
-extra["springAiVersion"] = "2.0.0"
+extra["springAiVersion"] = "2.0.1"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
@@ -29,8 +29,8 @@ dependencies {
 
     // Advisors
     implementation("org.springframework.ai:spring-ai-vector-store-advisor")
-    // Not managed by the Spring AI BOM; version pinned explicitly
-    implementation("org.springframework.ai:spring-ai-starter-tool-search-advisor:2.0.0")
+    // Joined the Spring AI BOM in 2.0.1 (was version-pinned before that)
+    implementation("org.springframework.ai:spring-ai-starter-tool-search-advisor")
     implementation("org.springframework.ai:spring-ai-starter-vector-store-redis")
 
     // Document Readers
