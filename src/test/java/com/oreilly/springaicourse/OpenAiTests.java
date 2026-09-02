@@ -318,16 +318,16 @@ class OpenAiTests {
     }
 
     @Test
-    @EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
+    //@EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
     void imageGeneratorBase64(@Autowired OpenAiImageModel imageModel) throws IOException {
         String prompt = """
                 A warrior cat rides a dragon into battle""";
 
-        // Note: with gpt-image-1, the response is returned as a base64-encoded string
+        // Note: with gpt-image-2, the response is returned as a base64-encoded string
         ImageResponse response = imageModel.call(
                 new ImagePrompt(prompt,
                         OpenAiImageOptions.builder()
-                                .model("gpt-image-1")
+                                .model("gpt-image-2")
                                 .build())
         );
 

@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
+//@EnabledIfEnvironmentVariable(named = "RUN_MULTIMODAL_TESTS", matches = "true")
 class AudioTests {
 
     // For audio transcription testing
