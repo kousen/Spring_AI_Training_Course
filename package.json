@@ -4,7 +4,7 @@
     "export": "slidev export slides.md --output spring-ai-slides.pdf"
   },
   "devDependencies": {
-    "@slidev/cli": "^52.0.0",
+    "@slidev/cli": "^53.0.0",
     "@slidev/theme-seriph": "^0.25.0",
     "playwright-chromium": "^1.54.1"
   },
