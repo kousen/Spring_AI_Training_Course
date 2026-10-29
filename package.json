@@ -1,7 +1,8 @@
 {
   "scripts": {
     "dev": "slidev slides.md",
-    "export": "slidev export slides.md --output spring-ai-slides.pdf"
+    "export": "slidev export slides.md --output spring-ai-slides.pdf",
+    "build": "slidev build slides.md"
   },
   "devDependencies": {
     "@slidev/cli": "^53.0.0",

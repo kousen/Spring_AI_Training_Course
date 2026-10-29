@@ -163,6 +163,8 @@ npm run export
 
 A PDF of the slides is built automatically on every push to `main` and published at the rolling [`slides-latest` release](https://github.com/kousen/Spring_AI_Training_Course/releases/latest).
 
+The same push deploys the deck to GitHub Pages, so it can be read in a browser with no setup: **<https://kousen.github.io/Spring_AI_Training_Course/>** (see [`deploy-slides-pages.yml`](.github/workflows/deploy-slides-pages.yml)).
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
